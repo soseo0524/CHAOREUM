@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(colcon build:*)",
+      "Bash(ros2 topic:*)",
+      "Bash(ros2 node:*)",
+      "Bash(ros2 param:*)",
+      "Bash(curl http://127.0.0.1:*)",
+      "Bash(pytest:*)",
+      "Bash(python3 -m pytest:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npm install:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(alembic:*)"
+    ],
+    "deny": [
+      "Read(./.env*)",
+      "Read(./aiot_ws/install/**)",
+      "Read(./aiot_ws/log/**)",
+      "Read(./**/node_modules/**)",
+      "Read(./**/*.zip)",
+      "Read(./**/.env*)"
+    ]
+  }
+}

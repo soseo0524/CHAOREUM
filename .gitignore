@@ -1,0 +1,18 @@
+
+# AIOT
+.env
+.env.*
+!.env.example
+backend/_to_delete/
+__pycache__/
+.pytest_cache/
+*.db
+node_modules/
+.DS_Store
+aiot_ws/
+*.zip
+generated.png
+.claude/settings.local.json
+.venv/
+app/node_modules/
+app/.expo/
