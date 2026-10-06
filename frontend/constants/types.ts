@@ -161,6 +161,20 @@ export type AreaDetail = {
   selected_ok: boolean | null;
 };
 
+export type ChargeSession = {
+  id: string;
+  request_id: string;
+  vehicle_id: string;
+  charger_id: string;
+  start_at: string;
+  end_at: string | null;
+  start_soc: number;
+  end_soc: number | null;
+  energy_kwh: number | null;
+  unit_price_won: number | null;
+  cost_won: number | null;
+};
+
 export type ParkingZone = { id: string; name: string; capacity: number; available: number; is_available: boolean };
 
 export type WsMessage =

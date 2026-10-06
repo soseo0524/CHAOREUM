@@ -39,3 +39,14 @@ export function chargerNo(id: string | null | undefined): string | null {
   const m = id?.match(/(\d+)$/);
   return m ? `충전기 ${Number(m[1])}번` : null;
 }
+
+/** '10월 3일 (금)' */
+export function dayWithWeek(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+}
+
+/** 충전 시간(분). 아직 끝나지 않았으면 null */
+export function minutesBetween(a: string, b: string | null): number | null {
+  return b ? Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000)) : null;
+}

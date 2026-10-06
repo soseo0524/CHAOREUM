@@ -1,5 +1,6 @@
 // 06.01 내 정보 (+ 06.04 로그아웃 확인)
 import { ChevronRight } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { Alert, Pressable, View } from 'react-native';
 
 import { Button, Screen, T, Title } from '@/components/ui';
@@ -56,7 +57,7 @@ export default function Me() {
       </View>
       <View>
         <MenuRow label="내 차량" value={plates} />
-        <MenuRow label="충전 이력" onPress={soon} />
+        <MenuRow label="충전 이력" onPress={() => router.push('/history')} />
         <MenuRow label="알림 설정" onPress={soon} />
         <MenuRow label="위치·차량 위임 동의" value={profile?.consent_agreed ? '동의함' : '미동의'} />
         <MenuRow label="이용약관 · 개인정보 처리방침" onPress={soon} />

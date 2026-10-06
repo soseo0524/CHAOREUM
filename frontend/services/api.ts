@@ -3,6 +3,7 @@ import type {
   AreaDetail,
   AreasOut,
   ChargeRequest,
+  ChargeSession,
   Feasibility,
   MeStatus,
   ParkingZone,
@@ -49,6 +50,7 @@ export const api = {
   updateMe: (b: { name?: string; phone?: string }) => request<Profile>('PATCH', '/me', b),
   consent: (version: string) => request('POST', '/consents', { version }),
   status: () => request<MeStatus>('GET', '/me/status'),
+  sessions: () => request<ChargeSession[]>('GET', '/me/sessions'),
   vehicles: () => request<Vehicle[]>('GET', '/vehicles'),
   createVehicle: (b: { plate_no: string; model?: string | null; battery_kwh: number; max_charge_kw: number }) =>
     request<Vehicle>('POST', '/vehicles', b),
