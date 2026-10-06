@@ -347,23 +347,11 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
     return changed
 
 
-# ---------- 1인칭 주차 지도(4·4-1·4-2·5) ----------
-def seat_rows() -> list[tuple[int | None, int | None]]:
-    """줄 → (왼쪽 칸 번호, 오른쪽 칸 번호). 1~10번은 왼쪽 10-row, 11~21번은 오른쪽 11+row."""
-    rows = []
-    for r in range(11):
-        left = 10 - r if 10 - r >= 1 else None
-        right = 11 + r if 11 + r <= 21 else None
-        rows.append((left, right))
-    return rows
-
-
-def parking_map(db: Session, user_id: UUID, row: int, depth: int, selected: str | None):
-    from schemas.parking_map import MapRow, ParkingMapOut, Seat, SeatState
-    layout = seat_rows()
-    total = len(layout)
-    row = min(max(row, 0), total - 1)
-    avail = {z.id: a for z, a in zone_availability(db)}  # 남은 자리 0 = 차 있음/남이 선정
+# ---------- 주차 구역 지도(02.02 전체 지도, 02.03 구역 안 맵) ----------
+def _seat_states(db: Session, user_id: UUID, selected: str | None) -> tuple[dict[str, str], dict[str, int]]:
+    """모든 자리의 (zone_id → 상태), (zone_id → 남은 자리). 내 자리·고르는 중인 자리는 MINE, 남이 잡았으면 TAKEN."""
+    from schemas.parking_map import SeatState
+    avail = {z.id: a for z, a in zone_availability(db)}  # 0 = 차 있음/남이 선정
     mine: set[str] = set()
     for v in repo.live_vehicles(db, user_id):
         ar = repo.active_request(db, v.id)
@@ -372,23 +360,52 @@ def parking_map(db: Session, user_id: UUID, row: int, depth: int, selected: str 
         st = db.get(m.VehicleStateRow, v.id)
         if st and st.state == VehicleState.PARKED and st.zone_id:
             mine.add(st.zone_id)
-
-    def seat(no: int | None):
-        if no is None:
-            return None
-        zid = f"PARKING_{no:02d}"
+    out: dict[str, str] = {}
+    for zid, a in avail.items():
         if zid in mine:
-            state = SeatState.MINE
-        elif avail.get(zid, 0) <= 0:
-            state = SeatState.TAKEN
+            out[zid] = SeatState.MINE
+        elif a <= 0:
+            out[zid] = SeatState.TAKEN
         elif selected == zid:
-            state = SeatState.MINE  # 지금 고르는 중인 자리
+            out[zid] = SeatState.MINE  # 지금 고르는 중인 자리
         else:
-            state = SeatState.FREE
-        return Seat(seat_no=no, zone_id=zid, state=state)
+            out[zid] = SeatState.FREE
+    return out, avail
 
-    rows = [MapRow(row=r, left=seat(layout[r][0]), right=seat(layout[r][1])) for r in range(row, min(row + depth, total))]
+
+def _seat_numbers(area_id: str) -> list[int]:
+    from schemas.parking_map import AREAS
+    lo, hi = AREAS[area_id]
+    return list(range(lo, hi + 1))
+
+
+def parking_areas(db: Session, user_id: UUID):
+    from schemas.parking_map import AREAS, AreasOut, AreaState, AreaSummary, Seat, SeatState
+    states, _ = _seat_states(db, user_id, None)
+    out = []
+    for aid in AREAS:
+        seats = [Seat(seat_no=n, zone_id=f"PARKING_{n:02d}", state=states.get(f"PARKING_{n:02d}", SeatState.TAKEN)) for n in _seat_numbers(aid)]
+        free = sum(1 for x in seats if x.state != SeatState.TAKEN)
+        out.append(AreaSummary(area_id=aid, name=f"{aid}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
+                               has_mine=any(x.state == SeatState.MINE for x in seats), seats=seats))
+    return AreasOut(areas=out)
+
+
+def parking_area_detail(db: Session, user_id: UUID, area_id: str, selected: str | None):
+    from schemas.parking_map import AREAS, DETAIL_COLS, AreaDetailOut, AreaState, Cell, DetailSeat, SeatState
+    area_id = area_id.upper()
+    if area_id not in AREAS:
+        return None
+    states, avail = _seat_states(db, user_id, selected)
+    seats = []
+    for i, n in enumerate(_seat_numbers(area_id)):
+        zid = f"PARKING_{n:02d}"
+        seats.append(DetailSeat(seat_no=n, zone_id=zid, state=states.get(zid, SeatState.TAKEN), row=i // DETAIL_COLS, col=i % DETAIL_COLS))
+    free = sum(1 for x in seats if x.state != SeatState.TAKEN)
+    rows = max(x.row for x in seats) + 1
     sel_ok = None
     if selected:
-        sel_ok = selected in mine or avail.get(selected, 0) > 0
-    return ParkingMapOut(row=row, depth=depth, total_rows=total, rows=rows, selected_zone_id=selected, selected_ok=sel_ok)
+        sel_ok = states.get(selected) in (SeatState.MINE, SeatState.FREE)
+    return AreaDetailOut(area_id=area_id, name=f"{area_id}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
+                         rows=rows, cols=DETAIL_COLS, entrance=Cell(row=rows - 1, col=len([x for x in seats if x.row == rows - 1])),
+                         seats=seats, selected_zone_id=selected, selected_ok=sel_ok)

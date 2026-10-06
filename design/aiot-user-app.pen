@@ -2378,7 +2378,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -2724,7 +2724,7 @@
                           "id": "ozvag",
                           "name": "Sub",
                           "fill": "$sub",
-                          "content": "충전기 1번 · 48분 · 11번 구역",
+                          "content": "충전기 1번 · 48분 · A구역 3번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -2922,7 +2922,7 @@
           "fill": "#A8ADB5",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "조건 입력 → 지도에서 구역 선택 → 미리보기 → 필요 시 동의 → 요청 접수·대기",
+          "content": "조건 입력 → 전체 지도에서 구역 선택 → 구역 안에서 자리 선택 → 미리보기 → 필요 시 동의 → 요청 접수·대기",
           "fontFamily": "$font",
           "fontSize": 14,
           "fontWeight": "normal"
@@ -3391,7 +3391,7 @@
                       "id": "o33lJK",
                       "name": "Value",
                       "fill": "$text",
-                      "content": "11번 구역",
+                      "content": "A구역 3번",
                       "fontFamily": "$mono",
                       "fontSize": 15,
                       "fontWeight": "normal"
@@ -3745,7 +3745,7 @@
       "id": "GYUz3",
       "x": 470,
       "y": 1244,
-      "name": "02.02 주차 구역 선택",
+      "name": "02.02 구역 선택 · 전체 지도",
       "clip": true,
       "width": 390,
       "height": 844,
@@ -3766,313 +3766,480 @@
           "layout": "none",
           "children": [
             {
-              "type": "path",
-              "id": "e3mSsf",
-              "x": 52.14285714285714,
-              "y": 287.27272727272725,
-              "name": "Road",
-              "geometry": "M0 324.2l285.7 0-124.7-324.2-36.3 0z",
-              "fill": "#0c0c0e",
-              "width": 285.7142857142858,
-              "height": 324.1558441558442
+              "type": "rectangle",
+              "cornerRadius": 36,
+              "id": "QcYii",
+              "x": -40,
+              "y": 128,
+              "name": "Garage Outline",
+              "fill": "#0c0c0d",
+              "width": 470,
+              "height": 560,
+              "stroke": "#2a2a2c",
+              "strokeWidth": 1.5
             },
             {
-              "type": "path",
-              "id": "Q584K",
-              "x": -266.53846153846155,
-              "y": 462.22222222222223,
-              "name": "Slot 10",
-              "geometry": "M333.33 111.11l-333.33 0 153.85-111.11 222.22 0z",
-              "fill": "#c4c4ca",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
+              "type": "rectangle",
+              "id": "i42Wa",
+              "x": 16,
+              "y": 380,
+              "name": "Lane",
+              "fill": "#151517",
+              "width": 324,
+              "height": 20
             },
             {
-              "type": "path",
-              "id": "aSrz3",
-              "x": -97.6829268292683,
-              "y": 400.4938271604939,
-              "name": "Slot 9",
-              "geometry": "M211.38 50.89l-211.38 0 70.46-50.89 160.49 0z",
-              "fill": "#3a3a3e",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "t24HI",
-              "x": -19.285714285714306,
-              "y": 365.6038647342995,
-              "name": "Slot 8",
-              "geometry": "M154.76 29.16l-154.76 0 40.37-29.16 125.61 0z",
-              "fill": "#c4c4ca",
-              "width": 165.97653554175295,
-              "height": 29.15804002760524,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "BuV1C",
-              "x": 25.98591549295773,
-              "y": 343.1746031746032,
-              "name": "Slot 7",
-              "geometry": "M122.07 18.89l-122.07 0 26.16-18.89 103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.33154482450257,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "g8E6T",
-              "x": 55.46511627906975,
-              "y": 327.54208754208753,
-              "name": "Slot 6",
-              "geometry": "M100.78 13.23l-100.78 0 18.32-13.23 87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089659,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "bDfG1",
-              "x": 280.47008547008545,
-              "y": 462.22222222222223,
-              "name": "Slot 11",
-              "geometry": "M42.74 111.11l333.33 0-153.85-111.11-222.22 0z",
-              "fill": "#68D2C3",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#68D2C3",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "KcMwv",
-              "x": 256.7283950617284,
-              "y": 400.4938271604939,
-              "name": "Slot 12",
-              "geometry": "M19.57 50.89l211.38 0-70.46-50.89-160.49 0z",
-              "fill": "#c4c4ca",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "uvUsw",
-              "x": 243.30917874396135,
-              "y": 365.6038647342995,
-              "name": "Slot 13",
-              "geometry": "M11.21 29.16l154.77 0-40.38-29.16-125.6 0z",
-              "fill": "#3a3a3e",
-              "width": 165.97653554175298,
-              "height": 29.15804002760524,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "loDxY",
-              "x": 234.6825396825397,
-              "y": 343.1746031746032,
-              "name": "Slot 14",
-              "geometry": "M7.27 18.89l122.06 0-26.16-18.89-103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.3315448245026,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "f8ybNN",
-              "x": 228.67003367003366,
-              "y": 327.54208754208753,
-              "name": "Slot 15",
-              "geometry": "M5.09 13.23l100.77 0-18.32-13.23-87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089656,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
+              "type": "rectangle",
+              "id": "KsQOi",
+              "x": 170,
+              "y": 190,
+              "name": "Lane Center",
+              "fill": "#151517",
+              "width": 12,
+              "height": 190
             },
             {
               "type": "frame",
-              "id": "kIADO",
-              "x": 165,
-              "y": 560,
-              "name": "Me",
-              "width": 60,
-              "height": 60,
-              "layout": "vertical",
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "w2Fqtv",
+              "x": 16,
+              "y": 190,
+              "name": "Zone A",
+              "width": 156,
+              "height": 190,
+              "fill": "#68D2C31F",
+              "cornerRadius": 22,
+              "stroke": "#68D2C3",
+              "strokeWidth": 2,
+              "layout": "none",
               "children": [
                 {
-                  "type": "ellipse",
-                  "id": "D8y7FX",
-                  "fill": "#1f9bff",
-                  "width": 18,
-                  "height": 18,
-                  "stroke": "#ffffff",
-                  "strokeWidth": 3
+                  "type": "text",
+                  "id": "SQRx8",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "A",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "CwJnr",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "#68D2C3",
+                  "content": "빈자리 4 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "P4Rkah",
+                  "x": 13,
+                  "y": 96,
+                  "name": "Seat 1",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "yU0eu",
+                  "x": 47,
+                  "y": 96,
+                  "name": "Seat 2",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "x3EhB",
+                  "x": 81,
+                  "y": 96,
+                  "name": "Seat 3",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "eF3oz",
+                  "x": 115,
+                  "y": 96,
+                  "name": "Seat 4",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "b2ttjm",
+                  "x": 13,
+                  "y": 138,
+                  "name": "Seat 5",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "h2JWM",
+                  "x": 47,
+                  "y": 138,
+                  "name": "Seat 6",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "d4jEz",
+                  "x": 81,
+                  "y": 138,
+                  "name": "Seat 7",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
                 }
               ]
             },
             {
               "type": "frame",
-              "id": "U74Q7g",
-              "x": 95,
-              "y": 116,
-              "name": "Drag Hint",
-              "width": 200,
-              "height": 34,
-              "fill": "#1e1e1e",
-              "cornerRadius": 17,
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "EoJu7",
+              "x": 184,
+              "y": 190,
+              "name": "Zone B",
+              "width": 156,
+              "height": 190,
+              "fill": "#141416",
+              "cornerRadius": 22,
+              "stroke": "#2c2c2e",
+              "strokeWidth": 1,
+              "layout": "none",
               "children": [
                 {
                   "type": "text",
-                  "id": "D2Csn",
-                  "fill": "#a0a0a0",
-                  "content": "↑ ↓  끌어서 앞뒤로 이동",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 13,
+                  "id": "IGGxt",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "B",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "N4IML",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "$sub",
+                  "content": "빈자리 2 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "WwewV",
+                  "x": 13,
+                  "y": 96,
+                  "name": "Seat 8",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "vI6RO",
+                  "x": 47,
+                  "y": 96,
+                  "name": "Seat 9",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "Xd8ji",
+                  "x": 81,
+                  "y": 96,
+                  "name": "Seat 10",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "K1ZY7",
+                  "x": 115,
+                  "y": 96,
+                  "name": "Seat 11",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "FUkw4",
+                  "x": 13,
+                  "y": 138,
+                  "name": "Seat 12",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "BjzOv",
+                  "x": 47,
+                  "y": 138,
+                  "name": "Seat 13",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "W7ubtX",
+                  "x": 81,
+                  "y": 138,
+                  "name": "Seat 14",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dEn2v",
+              "x": 16,
+              "y": 400,
+              "name": "Zone C",
+              "width": 324,
+              "height": 150,
+              "fill": "#141416",
+              "cornerRadius": 22,
+              "stroke": "#2c2c2e",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "usgHz",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "C",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "PN0Q6",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "$sub",
+                  "content": "빈자리 1 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "V5vPX",
+                  "x": 16,
+                  "y": 90,
+                  "name": "Seat 15",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "ExPZT",
+                  "x": 58,
+                  "y": 90,
+                  "name": "Seat 16",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "rokWA",
+                  "x": 100,
+                  "y": 90,
+                  "name": "Seat 17",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "QmoHM",
+                  "x": 142,
+                  "y": 90,
+                  "name": "Seat 18",
+                  "fill": "#d1d1d6",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "a8vjj5",
+                  "x": 184,
+                  "y": 90,
+                  "name": "Seat 19",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "HQUCB",
+                  "x": 226,
+                  "y": 90,
+                  "name": "Seat 20",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "vs7Ro",
+                  "x": 268,
+                  "y": 90,
+                  "name": "Seat 21",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "skvdW",
+              "x": 120,
+              "y": 566,
+              "name": "Entrance",
+              "width": 100,
+              "height": 24,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "nr5Rv",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Entrance Label",
+                  "fill": "$sub",
+                  "content": "▼ 입구",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
                   "fontWeight": "normal"
                 }
               ]
             },
             {
-              "type": "path",
-              "id": "FhTRO",
-              "x": 7.643678160919535,
-              "y": 480.74074074074076,
-              "name": "Num 10",
-              "geometry": "M21.56 9.74l14.87-9.74-36.43 58.11m26.44 0l29.88 0 25.48-58.11-24.07 0-31.29 58.11",
-              "width": 81.80076628352494,
-              "height": 58.10983397190296,
-              "stroke": "#111113",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "zeOvQ",
+              "x": 346,
+              "y": 230,
+              "name": "Zoom Controls",
+              "width": 36,
+              "height": 84,
+              "fill": "#1e1e1e",
+              "cornerRadius": 18,
+              "layout": "vertical",
+              "gap": 14,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e4IpYS",
+                  "name": "Zoom In",
+                  "fill": "$text",
+                  "content": "+",
+                  "fontFamily": "$font",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "SluuF",
+                  "name": "Zoom Out",
+                  "fill": "$text",
+                  "content": "−",
+                  "fontFamily": "$font",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "Ohkxt",
-              "x": 75.30303030303028,
-              "y": 409.93464052287584,
-              "name": "Num 9",
-              "geometry": "M27.07 12.52l-18.25 0 7.61-12.52 16.99 0-13.72 27.04-19.7 0",
-              "width": 33.42245989304814,
-              "height": 27.03505644682116,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.807017543859649
-            },
-            {
-              "type": "path",
-              "id": "ttdAq",
-              "x": 105.73446327683615,
-              "y": 371.3131313131313,
-              "name": "Num 8",
-              "geometry": "M0 15.58l14.69 0 7.91-15.58-13.13 0-9.47 15.58m5-8.23l13.87 0",
-              "width": 22.598870056497162,
-              "height": 15.579524054100375,
-              "stroke": "#111113",
-              "strokeWidth": 2.1333333333333333
-            },
-            {
-              "type": "path",
-              "id": "kIGGs",
-              "x": 128.51351351351352,
-              "y": 346.9958847736625,
-              "name": "Num 7",
-              "geometry": "M1.47 0l10.7 0-12.17 10.12",
-              "width": 12.165498832165497,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "d9chx",
-              "x": 135.8239700374532,
-              "y": 330.27777777777777,
-              "name": "Num 6",
-              "geometry": "M13.34 0l-9.03 0-4.31 7.1 9.74 0 1.87-3.68-9.37 0",
-              "width": 13.342696629213464,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
-            },
-            {
-              "type": "path",
-              "id": "hOHP5",
-              "x": 308.5838150289017,
-              "y": 480.74074074074076,
-              "name": "Num 11",
-              "geometry": "M0 9.74l4.01-9.74 28.38 58.11m2.29-48.37l2.66-9.74 36.43 58.11",
-              "width": 73.77250681017875,
-              "height": 58.10983397190296,
-              "stroke": "#0b1f1c",
-              "strokeWidth": 4.102564102564103
-            },
-            {
-              "type": "path",
-              "id": "N9dpsV",
-              "x": 274.23387096774195,
-              "y": 409.93464052287584,
-              "name": "Num 12",
-              "geometry": "M0 4.8l3.77-4.8 13.21 27.04m1.83-27.04l16.99 0 8.47 12.52-18.24 0 8.37 14.52 19.7 0",
-              "width": 54.09946236559142,
-              "height": 27.03505644682116,
-              "stroke": "#111113",
-              "strokeWidth": 2.807017543859649
-            },
-            {
-              "type": "path",
-              "id": "AEBL6",
-              "x": 255.8359133126935,
-              "y": 371.3131313131313,
-              "name": "Num 13",
-              "geometry": "M0 2.85l3.31-2.85 7.61 15.58m4-15.58l13.13 0 10.55 15.58-14.69 0m-1.97-8.23l11.09 0",
-              "width": 38.59911493589408,
-              "height": 15.579524054100375,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.1333333333333333
-            },
-            {
-              "type": "path",
-              "id": "iry2K",
-              "x": 244.3718592964824,
-              "y": 346.9958847736625,
-              "name": "Num 14",
-              "geometry": "M0 1.88l2.89-1.88 4.95 10.12m4.52-10.12l2.78 4.83 11.19 0m-3.27-4.83l6.85 10.12",
-              "width": 29.907419982796853,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "EMQ2A",
-              "x": 236.54334038054967,
-              "y": 330.27777777777777,
-              "name": "Num 15",
-              "geometry": "M0 1.34l2.55-1.34 3.47 7.1m13.55-7.1l-9.03 0 1.97 3.42 9.37 0 2.49 3.68-9.73 0",
-              "width": 24.37426261570502,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "O53QAj",
+              "x": 16,
+              "y": 118,
+              "name": "Gesture Hint",
+              "height": 34,
+              "fill": "#1e1e1e",
+              "cornerRadius": 17,
+              "padding": [
+                0,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "k4rOg",
+                  "name": "Hint",
+                  "fill": "#a0a0a0",
+                  "content": "두 손가락으로 확대·축소 · 끌어서 이동",
+                  "fontFamily": "$font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
             }
           ]
         },
@@ -4277,7 +4444,7 @@
                           "id": "n6MDJ",
                           "name": "Value",
                           "fill": "$text",
-                          "content": "11",
+                          "content": "A",
                           "fontFamily": "$mono",
                           "fontSize": 34,
                           "fontWeight": "normal",
@@ -4288,7 +4455,7 @@
                           "id": "p7NwA",
                           "name": "Unit",
                           "fill": "$sub",
-                          "content": "번",
+                          "content": "구역",
                           "fontFamily": "$font",
                           "fontSize": 16,
                           "fontWeight": "normal"
@@ -4296,6 +4463,16 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "text",
+                  "id": "buMmp",
+                  "name": "Free Count",
+                  "fill": "#68D2C3",
+                  "content": "빈자리 4 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -4316,7 +4493,7 @@
                   "id": "MXHiW",
                   "name": "Label",
                   "fill": "#000000",
-                  "content": "11번 구역에 주차하기",
+                  "content": "A구역 들어가기",
                   "fontFamily": "$font",
                   "fontSize": 15,
                   "fontWeight": "500"
@@ -4330,9 +4507,9 @@
     {
       "type": "frame",
       "id": "S4EbUd",
-      "x": 940,
+      "x": 1410,
       "y": 1244,
-      "name": "02.03 선택 구역 · 주차 미리보기",
+      "name": "02.04 선택 자리 · 주차 미리보기",
       "clip": true,
       "width": 390,
       "height": 844,
@@ -4354,313 +4531,275 @@
           "layout": "none",
           "children": [
             {
-              "type": "path",
-              "id": "FDWxO",
-              "x": 52.14285714285714,
-              "y": 287.27272727272725,
-              "name": "Road",
-              "geometry": "M0 324.2l285.7 0-124.7-324.2-36.3 0z",
-              "fill": "#0c0c0e",
-              "width": 285.7142857142858,
-              "height": 324.1558441558442
-            },
-            {
-              "type": "path",
-              "id": "Ojwhb",
-              "x": -266.53846153846155,
-              "y": 462.22222222222223,
-              "name": "Slot 10",
-              "geometry": "M333.33 111.11l-333.33 0 153.85-111.11 222.22 0z",
-              "fill": "#c4c4ca",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "W0gbGF",
-              "x": -97.6829268292683,
-              "y": 400.4938271604939,
-              "name": "Slot 9",
-              "geometry": "M211.38 50.89l-211.38 0 70.46-50.89 160.49 0z",
-              "fill": "#3a3a3e",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "z40C1",
-              "x": -19.285714285714306,
-              "y": 365.6038647342995,
-              "name": "Slot 8",
-              "geometry": "M154.76 29.16l-154.76 0 40.37-29.16 125.61 0z",
-              "fill": "#c4c4ca",
-              "width": 165.97653554175295,
-              "height": 29.15804002760524,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "qEAPd",
-              "x": 25.98591549295773,
-              "y": 343.1746031746032,
-              "name": "Slot 7",
-              "geometry": "M122.07 18.89l-122.07 0 26.16-18.89 103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.33154482450257,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "MDdGu",
-              "x": 55.46511627906975,
-              "y": 327.54208754208753,
-              "name": "Slot 6",
-              "geometry": "M100.78 13.23l-100.78 0 18.32-13.23 87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089659,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "V818tD",
-              "x": 280.47008547008545,
-              "y": 462.22222222222223,
-              "name": "Slot 11",
-              "geometry": "M42.74 111.11l333.33 0-153.85-111.11-222.22 0z",
-              "fill": "#68D2C3",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#68D2C3",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "J4ykr",
-              "x": 256.7283950617284,
-              "y": 400.4938271604939,
-              "name": "Slot 12",
-              "geometry": "M19.57 50.89l211.38 0-70.46-50.89-160.49 0z",
-              "fill": "#c4c4ca",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "cUqjv",
-              "x": 243.30917874396135,
-              "y": 365.6038647342995,
-              "name": "Slot 13",
-              "geometry": "M11.21 29.16l154.77 0-40.38-29.16-125.6 0z",
-              "fill": "#3a3a3e",
-              "width": 165.97653554175298,
-              "height": 29.15804002760524,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "fOnCb",
-              "x": 234.6825396825397,
-              "y": 343.1746031746032,
-              "name": "Slot 14",
-              "geometry": "M7.27 18.89l122.06 0-26.16-18.89-103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.3315448245026,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "PziGy",
-              "x": 228.67003367003366,
-              "y": 327.54208754208753,
-              "name": "Slot 15",
-              "geometry": "M5.09 13.23l100.77 0-18.32-13.23-87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089656,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
               "type": "frame",
-              "id": "HGJ6b",
-              "x": 165,
-              "y": 560,
-              "name": "Me",
-              "width": 60,
-              "height": 60,
-              "layout": "vertical",
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "Q5Osd",
+              "x": 35,
+              "y": 170,
+              "name": "Seat 1",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
               "children": [
                 {
-                  "type": "ellipse",
-                  "id": "Bm2YM",
-                  "fill": "#1f9bff",
-                  "width": 18,
-                  "height": 18,
-                  "stroke": "#ffffff",
-                  "strokeWidth": 3
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "UuP3a",
-              "x": 95,
-              "y": 116,
-              "name": "Drag Hint",
-              "width": 200,
-              "height": 34,
-              "fill": "#1e1e1e",
-              "cornerRadius": 17,
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
+                  "type": "rectangle",
+                  "id": "F1hfr",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
                 {
                   "type": "text",
-                  "id": "UnXvg",
-                  "fill": "#a0a0a0",
-                  "content": "↑ ↓  끌어서 앞뒤로 이동",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 13,
+                  "id": "bvVO8",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "1",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
                   "fontWeight": "normal"
                 }
               ]
             },
             {
-              "type": "path",
-              "id": "WaU1i",
-              "x": 7.643678160919535,
-              "y": 480.74074074074076,
-              "name": "Num 10",
-              "geometry": "M21.56 9.74l14.87-9.74-36.43 58.11m26.44 0l29.88 0 25.48-58.11-24.07 0-31.29 58.11",
-              "width": 81.80076628352494,
-              "height": 58.10983397190296,
-              "stroke": "#111113",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "ROxdr",
+              "x": 117,
+              "y": 170,
+              "name": "Seat 2",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "t0G6F8",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "aAGBa",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "2",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "YcxbA",
-              "x": 75.30303030303028,
-              "y": 409.93464052287584,
-              "name": "Num 9",
-              "geometry": "M27.07 12.52l-18.25 0 7.61-12.52 16.99 0-13.72 27.04-19.7 0",
-              "width": 33.42245989304814,
-              "height": 27.03505644682116,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.807017543859649
+              "type": "frame",
+              "id": "U1DUz",
+              "x": 199,
+              "y": 170,
+              "name": "Seat 3",
+              "width": 74,
+              "height": 132,
+              "fill": "#68D2C3",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gACL1",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#00302a",
+                  "content": "3",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "VbMas",
-              "x": 105.73446327683615,
-              "y": 371.3131313131313,
-              "name": "Num 8",
-              "geometry": "M0 15.58l14.69 0 7.91-15.58-13.13 0-9.47 15.58m5-8.23l13.87 0",
-              "width": 22.598870056497162,
-              "height": 15.579524054100375,
-              "stroke": "#111113",
-              "strokeWidth": 2.1333333333333333
+              "type": "frame",
+              "id": "m8wyGp",
+              "x": 281,
+              "y": 170,
+              "name": "Seat 4",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UbNjj",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "4",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "a6BQAF",
-              "x": 128.51351351351352,
-              "y": 346.9958847736625,
-              "name": "Num 7",
-              "geometry": "M1.47 0l10.7 0-12.17 10.12",
-              "width": 12.165498832165497,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
+              "type": "frame",
+              "id": "baPrp",
+              "x": 35,
+              "y": 410,
+              "name": "Seat 5",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "OTGm6",
+                  "x": 7,
+                  "y": 122,
+                  "name": "Car",
+                  "rotation": 90,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "ew81y",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "5",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "kyy6f",
-              "x": 135.8239700374532,
-              "y": 330.27777777777777,
-              "name": "Num 6",
-              "geometry": "M13.34 0l-9.03 0-4.31 7.1 9.74 0 1.87-3.68-9.37 0",
-              "width": 13.342696629213464,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "k1fbbs",
+              "x": 117,
+              "y": 410,
+              "name": "Seat 6",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "T4GWp",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "6",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "FeHSX",
-              "x": 308.5838150289017,
-              "y": 480.74074074074076,
-              "name": "Num 11",
-              "geometry": "M0 9.74l4.01-9.74 28.38 58.11m2.29-48.37l2.66-9.74 36.43 58.11",
-              "width": 73.77250681017875,
-              "height": 58.10983397190296,
-              "stroke": "#0b1f1c",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "ySZpd",
+              "x": 199,
+              "y": 410,
+              "name": "Seat 7",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lcqbZ",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "7",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "vZTt8",
-              "x": 274.23387096774195,
-              "y": 409.93464052287584,
-              "name": "Num 12",
-              "geometry": "M0 4.8l3.77-4.8 13.21 27.04m1.83-27.04l16.99 0 8.47 12.52-18.24 0 8.37 14.52 19.7 0",
-              "width": 54.09946236559142,
-              "height": 27.03505644682116,
-              "stroke": "#111113",
-              "strokeWidth": 2.807017543859649
-            },
-            {
-              "type": "path",
-              "id": "qNpM0",
-              "x": 255.8359133126935,
-              "y": 371.3131313131313,
-              "name": "Num 13",
-              "geometry": "M0 2.85l3.31-2.85 7.61 15.58m4-15.58l13.13 0 10.55 15.58-14.69 0m-1.97-8.23l11.09 0",
-              "width": 38.59911493589408,
-              "height": 15.579524054100375,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.1333333333333333
-            },
-            {
-              "type": "path",
-              "id": "ylHcX",
-              "x": 244.3718592964824,
-              "y": 346.9958847736625,
-              "name": "Num 14",
-              "geometry": "M0 1.88l2.89-1.88 4.95 10.12m4.52-10.12l2.78 4.83 11.19 0m-3.27-4.83l6.85 10.12",
-              "width": 29.907419982796853,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "c7aPk8",
-              "x": 236.54334038054967,
-              "y": 330.27777777777777,
-              "name": "Num 15",
-              "geometry": "M0 1.34l2.55-1.34 3.47 7.1m13.55-7.1l-9.03 0 1.97 3.42 9.37 0 2.49 3.68-9.73 0",
-              "width": 24.37426261570502,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "k8eF3",
+              "x": 281,
+              "y": 410,
+              "name": "Entrance",
+              "width": 74,
+              "height": 132,
+              "cornerRadius": 12,
+              "stroke": "#3a3a3c",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 6,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u6WoU",
+                  "name": "Arrow",
+                  "fill": "#8e8e93",
+                  "content": "▼",
+                  "fontFamily": "$font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "PBv41",
+                  "name": "Entrance Text",
+                  "fill": "#8e8e93",
+                  "content": "입구",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
             }
           ]
         },
@@ -4718,14 +4857,14 @@
         {
           "type": "rectangle",
           "id": "hRIUJ",
-          "x": 70,
-          "y": 590,
+          "x": 320,
+          "y": 130,
           "name": "My Car Top View",
-          "rotation": 90,
+          "rotation": 270,
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "../generated.png",
+            "url": "../generated_car_v4.png",
             "mode": "fit",
             "blendMode": "screen"
           },
@@ -4833,7 +4972,7 @@
               "id": "gWXqC",
               "name": "Value",
               "fill": "$text",
-              "content": "11번 구역",
+              "content": "A구역 3번",
               "fontFamily": "$mono",
               "fontSize": 13,
               "fontWeight": "normal"
@@ -4871,7 +5010,7 @@
                   "id": "o8lKRK",
                   "name": "Title",
                   "fill": "$text",
-                  "content": "11번 구역에 주차할게요",
+                  "content": "A구역 3번 자리에 주차할게요",
                   "fontFamily": "$font",
                   "fontSize": 26,
                   "fontWeight": "normal",
@@ -4930,7 +5069,7 @@
                   "id": "f3TMUR",
                   "name": "Label",
                   "fill": "#ffffff",
-                  "content": "다른 구역 선택",
+                  "content": "다른 자리 선택",
                   "fontFamily": "$font",
                   "fontSize": 14,
                   "fontWeight": "500"
@@ -4944,9 +5083,9 @@
     {
       "type": "frame",
       "id": "pBjsa",
-      "x": 1410,
+      "x": 1880,
       "y": 1244,
-      "name": "02.04 위치·무인 이동 위임 동의",
+      "name": "02.05 위치·무인 이동 위임 동의",
       "clip": true,
       "width": 390,
       "fill": "$bg",
@@ -5403,7 +5542,7 @@
                       "id": "vnbB7",
                       "name": "Value",
                       "fill": "$text",
-                      "content": "11번 구역",
+                      "content": "A구역 3번",
                       "fontFamily": "$mono",
                       "fontSize": 15,
                       "fontWeight": "normal"
@@ -5996,9 +6135,9 @@
     {
       "type": "frame",
       "id": "Kj7nV",
-      "x": 1880,
+      "x": 2350,
       "y": 1244,
-      "name": "02.05 홈 · 요청 접수·충전 대기",
+      "name": "02.06 홈 · 요청 접수·충전 대기",
       "clip": true,
       "width": 390,
       "fill": "$bg",
@@ -6118,7 +6257,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -7412,7 +7551,7 @@
                       "id": "m5Ime",
                       "name": "Value",
                       "fill": "$text",
-                      "content": "11번 구역",
+                      "content": "A구역 3번",
                       "fontFamily": "$mono",
                       "fontSize": 15,
                       "fontWeight": "normal"
@@ -7799,313 +7938,416 @@
           "layout": "none",
           "children": [
             {
-              "type": "path",
-              "id": "Yqtgx",
-              "x": 52.14285714285714,
-              "y": 287.27272727272725,
-              "name": "Road",
-              "geometry": "M0 324.2l285.7 0-124.7-324.2-36.3 0z",
-              "fill": "#0c0c0e",
-              "width": 285.7142857142858,
-              "height": 324.1558441558442
-            },
-            {
-              "type": "path",
-              "id": "j8ixzp",
-              "x": -266.53846153846155,
-              "y": 462.22222222222223,
-              "name": "Slot 10",
-              "geometry": "M333.33 111.11l-333.33 0 153.85-111.11 222.22 0z",
-              "fill": "#c4c4ca",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "oN3fW",
-              "x": -97.6829268292683,
-              "y": 400.4938271604939,
-              "name": "Slot 9",
-              "geometry": "M211.38 50.89l-211.38 0 70.46-50.89 160.49 0z",
-              "fill": "#3a3a3e",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "MuHvc",
-              "x": -19.285714285714306,
-              "y": 365.6038647342995,
-              "name": "Slot 8",
-              "geometry": "M154.76 29.16l-154.76 0 40.37-29.16 125.61 0z",
-              "fill": "#c4c4ca",
-              "width": 165.97653554175295,
-              "height": 29.15804002760524,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "zdRaS",
-              "x": 25.98591549295773,
-              "y": 343.1746031746032,
-              "name": "Slot 7",
-              "geometry": "M122.07 18.89l-122.07 0 26.16-18.89 103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.33154482450257,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "TDJlI",
-              "x": 55.46511627906975,
-              "y": 327.54208754208753,
-              "name": "Slot 6",
-              "geometry": "M100.78 13.23l-100.78 0 18.32-13.23 87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089659,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "jPXaz",
-              "x": 280.47008547008545,
-              "y": 462.22222222222223,
-              "name": "Slot 11",
-              "geometry": "M42.74 111.11l333.33 0-153.85-111.11-222.22 0z",
-              "fill": "#ff5c5c",
-              "width": 376.0683760683761,
-              "height": 111.11111111111103,
-              "stroke": "#ff5c5c",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "AE0Ul",
-              "x": 256.7283950617284,
-              "y": 400.4938271604939,
-              "name": "Slot 12",
-              "geometry": "M19.57 50.89l211.38 0-70.46-50.89-160.49 0z",
-              "fill": "#c4c4ca",
-              "width": 230.9545317675399,
-              "height": 50.888286660644326,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "r8mVQH",
-              "x": 243.30917874396135,
-              "y": 365.6038647342995,
-              "name": "Slot 13",
-              "geometry": "M11.21 29.16l154.77 0-40.38-29.16-125.6 0z",
-              "fill": "#3a3a3e",
-              "width": 165.97653554175298,
-              "height": 29.15804002760524,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "zO6W0",
-              "x": 234.6825396825397,
-              "y": 343.1746031746032,
-              "name": "Slot 14",
-              "geometry": "M7.27 18.89l122.06 0-26.16-18.89-103.17 0z",
-              "fill": "#c4c4ca",
-              "width": 129.3315448245026,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "G0OrGL",
-              "x": 228.67003367003366,
-              "y": 327.54208754208753,
-              "name": "Slot 15",
-              "geometry": "M5.09 13.23l100.77 0-18.32-13.23-87.54 0z",
-              "fill": "#c4c4ca",
-              "width": 105.86485005089656,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
               "type": "frame",
-              "id": "urWvG",
-              "x": 165,
-              "y": 560,
-              "name": "Me",
-              "width": 60,
-              "height": 60,
-              "layout": "vertical",
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "LRHK9",
+              "x": 35,
+              "y": 170,
+              "name": "Seat 1",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
               "children": [
                 {
-                  "type": "ellipse",
-                  "id": "BT80K",
-                  "fill": "#1f9bff",
-                  "width": 18,
-                  "height": 18,
-                  "stroke": "#ffffff",
-                  "strokeWidth": 3
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "XU163",
-              "x": 95,
-              "y": 116,
-              "name": "Drag Hint",
-              "width": 200,
-              "height": 34,
-              "fill": "#1e1e1e",
-              "cornerRadius": 17,
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
+                  "type": "rectangle",
+                  "id": "t6d5jE",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
                 {
                   "type": "text",
-                  "id": "v7VQm",
-                  "fill": "#a0a0a0",
-                  "content": "↑ ↓  끌어서 앞뒤로 이동",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 13,
+                  "id": "j2Nd8",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "1",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
                   "fontWeight": "normal"
                 }
               ]
             },
             {
-              "type": "path",
-              "id": "zpReo",
-              "x": 7.643678160919535,
-              "y": 480.74074074074076,
-              "name": "Num 10",
-              "geometry": "M21.56 9.74l14.87-9.74-36.43 58.11m26.44 0l29.88 0 25.48-58.11-24.07 0-31.29 58.11",
-              "width": 81.80076628352494,
-              "height": 58.10983397190296,
-              "stroke": "#111113",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "cPPYg",
+              "x": 117,
+              "y": 170,
+              "name": "Seat 2",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "Tbt78",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "zvqaP",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "2",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "u3GNv",
-              "x": 75.30303030303028,
-              "y": 409.93464052287584,
-              "name": "Num 9",
-              "geometry": "M27.07 12.52l-18.25 0 7.61-12.52 16.99 0-13.72 27.04-19.7 0",
-              "width": 33.42245989304814,
-              "height": 27.03505644682116,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.807017543859649
+              "type": "frame",
+              "id": "kbwPv",
+              "x": 199,
+              "y": 170,
+              "name": "Seat 3",
+              "width": 74,
+              "height": 132,
+              "fill": "#ff3b30",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bTPQC",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#ffffff",
+                  "content": "3",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "DifmL",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "rOg3e",
-              "x": 105.73446327683615,
-              "y": 371.3131313131313,
-              "name": "Num 8",
-              "geometry": "M0 15.58l14.69 0 7.91-15.58-13.13 0-9.47 15.58m5-8.23l13.87 0",
-              "width": 22.598870056497162,
-              "height": 15.579524054100375,
-              "stroke": "#111113",
-              "strokeWidth": 2.1333333333333333
+              "type": "frame",
+              "id": "lsUVW",
+              "x": 281,
+              "y": 170,
+              "name": "Seat 4",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "J1f6CI",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "4",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "CM0BS",
-              "x": 128.51351351351352,
-              "y": 346.9958847736625,
-              "name": "Num 7",
-              "geometry": "M1.47 0l10.7 0-12.17 10.12",
-              "width": 12.165498832165497,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
+              "type": "frame",
+              "id": "hWlJ4",
+              "x": 35,
+              "y": 410,
+              "name": "Seat 5",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "UOLu2",
+                  "x": 7,
+                  "y": 122,
+                  "name": "Car",
+                  "rotation": 90,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "QUKKm",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "5",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "AO9rg",
-              "x": 135.8239700374532,
-              "y": 330.27777777777777,
-              "name": "Num 6",
-              "geometry": "M13.34 0l-9.03 0-4.31 7.1 9.74 0 1.87-3.68-9.37 0",
-              "width": 13.342696629213464,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "K7aHvr",
+              "x": 117,
+              "y": 410,
+              "name": "Seat 6",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "sn6lA",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "6",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "m2NpB",
-              "x": 308.5838150289017,
-              "y": 480.74074074074076,
-              "name": "Num 11",
-              "geometry": "M0 9.74l4.01-9.74 28.38 58.11m2.29-48.37l2.66-9.74 36.43 58.11",
-              "width": 73.77250681017875,
-              "height": 58.10983397190296,
-              "stroke": "#ffffff",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "fBNUp",
+              "x": 199,
+              "y": 410,
+              "name": "Seat 7",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "c5W5bm",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "7",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "G1WqHC",
-              "x": 274.23387096774195,
-              "y": 409.93464052287584,
-              "name": "Num 12",
-              "geometry": "M0 4.8l3.77-4.8 13.21 27.04m1.83-27.04l16.99 0 8.47 12.52-18.24 0 8.37 14.52 19.7 0",
-              "width": 54.09946236559142,
-              "height": 27.03505644682116,
-              "stroke": "#111113",
-              "strokeWidth": 2.807017543859649
+              "type": "frame",
+              "id": "w9KOn",
+              "x": 281,
+              "y": 410,
+              "name": "Entrance",
+              "width": 74,
+              "height": 132,
+              "cornerRadius": 12,
+              "stroke": "#3a3a3c",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 6,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aBYXn",
+                  "name": "Arrow",
+                  "fill": "#8e8e93",
+                  "content": "▼",
+                  "fontFamily": "$font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "eBMxm",
+                  "name": "Entrance Text",
+                  "fill": "#8e8e93",
+                  "content": "입구",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "Lgocj",
-              "x": 255.8359133126935,
-              "y": 371.3131313131313,
-              "name": "Num 13",
-              "geometry": "M0 2.85l3.31-2.85 7.61 15.58m4-15.58l13.13 0 10.55 15.58-14.69 0m-1.97-8.23l11.09 0",
-              "width": 38.59911493589408,
-              "height": 15.579524054100375,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.1333333333333333
+              "type": "frame",
+              "id": "hsl3X",
+              "x": 35,
+              "y": 320,
+              "name": "Lane Guide",
+              "width": 320,
+              "height": 72,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MPktH",
+                  "name": "Lane Text",
+                  "fill": "#5a5a5e",
+                  "content": "차량이 지나가는 길",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "IsI2Q",
-              "x": 244.3718592964824,
-              "y": 346.9958847736625,
-              "name": "Num 14",
-              "geometry": "M0 1.88l2.89-1.88 4.95 10.12m4.52-10.12l2.78 4.83 11.19 0m-3.27-4.83l6.85 10.12",
-              "width": 29.907419982796853,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "yy3lH",
-              "x": 236.54334038054967,
-              "y": 330.27777777777777,
-              "name": "Num 15",
-              "geometry": "M0 1.34l2.55-1.34 3.47 7.1m13.55-7.1l-9.03 0 1.97 3.42 9.37 0 2.49 3.68-9.73 0",
-              "width": 24.37426261570502,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "yJz0L",
+              "x": 0,
+              "y": 566,
+              "name": "Legend",
+              "width": 390,
+              "height": 24,
+              "gap": 18,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YiITR",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "jVhdz",
+                      "name": "Dot",
+                      "fill": "#cfcfd4",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#00000000",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "N8K3V",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "선택 가능",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OOlbm",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "DlcPp",
+                      "name": "Dot",
+                      "fill": "#262628",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#5a5a5e",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "LezfU",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "이미 있음",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "SoXgm",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "n6dLf",
+                      "name": "Dot",
+                      "fill": "#ff3b30",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#ff3b30",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "NR23S",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "방금 선정됨",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -8220,7 +8462,7 @@
               "id": "gjbKh",
               "name": "Title",
               "fill": "$text",
-              "content": "주차 구역 선택",
+              "content": "A구역 · 빈자리 3",
               "fontFamily": "$font",
               "fontSize": 14,
               "fontWeight": "normal"
@@ -8300,7 +8542,7 @@
                       "type": "text",
                       "id": "EmTxZ",
                       "fill": "#ffffff",
-                      "content": "11번은 이미 선정된 자리예요",
+                      "content": "3번은 이미 선정된 자리예요",
                       "fontFamily": "$font",
                       "fontSize": 16,
                       "fontWeight": "normal"
@@ -8311,7 +8553,7 @@
                   "type": "text",
                   "id": "n1Vb2c",
                   "fill": "#a0a0a0",
-                  "content": "다른 차량이 먼저 선택했어요. 흰 테두리 빈자리 중에서 골라 주세요.",
+                  "content": "다른 차량이 먼저 선택했어요. 밝은 회색 빈자리 중에서 골라 주세요.",
                   "fontFamily": "$font",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -8348,10 +8590,9 @@
           "type": "frame",
           "id": "OmC6e",
           "layoutPosition": "absolute",
-          "x": 186,
-          "y": 300,
+          "x": 211,
+          "y": 146,
           "name": "Taken Tag",
-          "enabled": false,
           "fill": "#ff3737",
           "cornerRadius": 9999,
           "padding": [
@@ -8377,7 +8618,7 @@
       "id": "MuzBy",
       "x": 940,
       "y": 2358,
-      "name": "02-A.03 주차장 맵 · 주행 시점",
+      "name": "02-A.03 가득 찬 구역",
       "clip": true,
       "width": 390,
       "height": 844,
@@ -8398,313 +8639,480 @@
           "layout": "none",
           "children": [
             {
-              "type": "path",
-              "id": "uEA5L",
-              "x": 52.14285714285714,
-              "y": 287.27272727272725,
-              "name": "Road",
-              "geometry": "M0 324.2l285.7 0-124.7-324.2-36.3 0z",
-              "fill": "#0c0c0e",
-              "width": 285.7142857142858,
-              "height": 324.1558441558442
+              "type": "rectangle",
+              "cornerRadius": 36,
+              "id": "NSKOA",
+              "x": -40,
+              "y": 128,
+              "name": "Garage Outline",
+              "fill": "#0c0c0d",
+              "width": 470,
+              "height": 560,
+              "stroke": "#2a2a2c",
+              "strokeWidth": 1.5
             },
             {
-              "type": "path",
-              "id": "GMPll",
-              "x": -883.2051282051282,
-              "y": 462.22222222222223,
-              "name": "Slot 10",
-              "geometry": "M950 111.11l-950 0 359.4-111.11 633.34 0z",
-              "fill": "#c4c4ca",
-              "width": 992.7350427350427,
-              "height": 111.11111111111103,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
+              "type": "rectangle",
+              "id": "dPIQF",
+              "x": 16,
+              "y": 380,
+              "name": "Lane",
+              "fill": "#151517",
+              "width": 324,
+              "height": 20
             },
             {
-              "type": "path",
-              "id": "J2mhnQ",
-              "x": -488.739837398374,
-              "y": 400.4938271604939,
-              "name": "Slot 9",
-              "geometry": "M602.44 50.89l-602.44 0 164.6-50.89 457.41 0z",
-              "fill": "#3a3a3e",
-              "width": 622.0114423366456,
-              "height": 50.888286660644326,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "x8us7",
-              "x": -305.59523809523813,
-              "y": 365.6038647342995,
-              "name": "Slot 8",
-              "geometry": "M441.07 29.16l-441.07 0 94.32-29.16 357.97 0z",
-              "fill": "#c4c4ca",
-              "width": 452.2860593512768,
-              "height": 29.15804002760524,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "IT03A",
-              "x": -199.83568075117375,
-              "y": 343.1746031746032,
-              "name": "Slot 7",
-              "geometry": "M347.89 18.89l-347.89 0 61.11-18.89 294.04 0z",
-              "fill": "#c4c4ca",
-              "width": 355.15314106863406,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "q0ztsa",
-              "x": -130.96899224806208,
-              "y": 327.54208754208753,
-              "name": "Slot 6",
-              "geometry": "M287.21 13.23l-287.21 0 42.8-13.23 249.5 0z",
-              "fill": "#c4c4ca",
-              "width": 292.2989585780284,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "Pca73",
-              "x": 280.47008547008545,
-              "y": 462.22222222222223,
-              "name": "Slot 11",
-              "geometry": "M42.74 111.11l950 0-359.41-111.11-633.33 0z",
-              "fill": "#68D2C3",
-              "width": 992.7350427350427,
-              "height": 111.11111111111103,
-              "stroke": "#68D2C3",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "tOSKO",
-              "x": 256.7283950617284,
-              "y": 400.4938271604939,
-              "name": "Slot 12",
-              "geometry": "M19.57 50.89l602.44 0-164.6-50.89-457.41 0z",
-              "fill": "#c4c4ca",
-              "width": 622.0114423366456,
-              "height": 50.888286660644326,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "gWPxj",
-              "x": 243.30917874396135,
-              "y": 365.6038647342995,
-              "name": "Slot 13",
-              "geometry": "M11.21 29.16l441.08 0-94.32-29.16-357.97 0z",
-              "fill": "#3a3a3e",
-              "width": 452.2860593512767,
-              "height": 29.15804002760524,
-              "stroke": "#3a3a3e",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "s6maR",
-              "x": 234.6825396825397,
-              "y": 343.1746031746032,
-              "name": "Slot 14",
-              "geometry": "M7.27 18.89l347.88 0-61.1-18.89-294.05 0z",
-              "fill": "#c4c4ca",
-              "width": 355.15314106863406,
-              "height": 18.891124524927307,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
-            },
-            {
-              "type": "path",
-              "id": "CrPIb",
-              "x": 228.67003367003366,
-              "y": 327.54208754208753,
-              "name": "Slot 15",
-              "geometry": "M5.09 13.23l287.21 0-42.81-13.23-249.49 0z",
-              "fill": "#c4c4ca",
-              "width": 292.29895857802836,
-              "height": 13.233106256362078,
-              "stroke": "#c4c4ca",
-              "strokeWidth": 1
+              "type": "rectangle",
+              "id": "hhdoU",
+              "x": 170,
+              "y": 190,
+              "name": "Lane Center",
+              "fill": "#151517",
+              "width": 12,
+              "height": 190
             },
             {
               "type": "frame",
-              "id": "X1Hhh",
-              "x": 165,
-              "y": 560,
-              "name": "Me",
-              "width": 60,
-              "height": 60,
-              "layout": "vertical",
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "L7IZY",
+              "x": 16,
+              "y": 190,
+              "name": "Zone A",
+              "width": 156,
+              "height": 190,
+              "fill": "#141416",
+              "cornerRadius": 22,
+              "stroke": "#2c2c2e",
+              "strokeWidth": 1,
+              "layout": "none",
               "children": [
                 {
-                  "type": "ellipse",
-                  "id": "TctVD",
-                  "fill": "#1f9bff",
-                  "width": 18,
-                  "height": 18,
-                  "stroke": "#ffffff",
-                  "strokeWidth": 3
+                  "type": "text",
+                  "id": "o9OsR",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "A",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "gJ5qS",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "$sub",
+                  "content": "빈자리 4 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "Y5ljit",
+                  "x": 13,
+                  "y": 96,
+                  "name": "Seat 1",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "EHkLw",
+                  "x": 47,
+                  "y": 96,
+                  "name": "Seat 2",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "wTmGV",
+                  "x": 81,
+                  "y": 96,
+                  "name": "Seat 3",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "f5nKy",
+                  "x": 115,
+                  "y": 96,
+                  "name": "Seat 4",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "rwEki",
+                  "x": 13,
+                  "y": 138,
+                  "name": "Seat 5",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "kgn1y",
+                  "x": 47,
+                  "y": 138,
+                  "name": "Seat 6",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "IRrUs",
+                  "x": 81,
+                  "y": 138,
+                  "name": "Seat 7",
+                  "fill": "#d1d1d6",
+                  "width": 28,
+                  "height": 36
                 }
               ]
             },
             {
               "type": "frame",
-              "id": "e8GtZ",
-              "x": 95,
-              "y": 116,
-              "name": "Drag Hint",
-              "width": 200,
-              "height": 34,
-              "fill": "#1e1e1e",
-              "cornerRadius": 17,
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
+              "id": "yxtcX",
+              "x": 184,
+              "y": 190,
+              "name": "Zone B",
+              "width": 156,
+              "height": 190,
+              "fill": "#ffffff12",
+              "cornerRadius": 22,
+              "stroke": "#8e8e93",
+              "strokeWidth": 2,
+              "layout": "none",
               "children": [
                 {
                   "type": "text",
-                  "id": "TZZoO",
-                  "fill": "#a0a0a0",
-                  "content": "↑ ↓  끌어서 앞뒤로 이동",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 13,
+                  "id": "FJQVG",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "B",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "DVyOc",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "#ff3b30",
+                  "content": "가득 참",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "KSy0R",
+                  "x": 13,
+                  "y": 96,
+                  "name": "Seat 8",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "LfkPX",
+                  "x": 47,
+                  "y": 96,
+                  "name": "Seat 9",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "FVZI1",
+                  "x": 81,
+                  "y": 96,
+                  "name": "Seat 10",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "V87dZ",
+                  "x": 115,
+                  "y": 96,
+                  "name": "Seat 11",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "L2tii1",
+                  "x": 13,
+                  "y": 138,
+                  "name": "Seat 12",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "Jumq9",
+                  "x": 47,
+                  "y": 138,
+                  "name": "Seat 13",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "CIKZs",
+                  "x": 81,
+                  "y": 138,
+                  "name": "Seat 14",
+                  "fill": "#3a3a3c",
+                  "width": 28,
+                  "height": 36
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l1SbeJ",
+              "x": 16,
+              "y": 400,
+              "name": "Zone C",
+              "width": 324,
+              "height": 150,
+              "fill": "#141416",
+              "cornerRadius": 22,
+              "stroke": "#2c2c2e",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "X1eCyE",
+                  "x": 16,
+                  "y": 14,
+                  "name": "Zone Letter",
+                  "fill": "$text",
+                  "content": "C",
+                  "fontFamily": "$mono",
+                  "fontSize": 30,
+                  "fontWeight": "normal",
+                  "letterSpacing": -1
+                },
+                {
+                  "type": "text",
+                  "id": "JJIM4",
+                  "x": 16,
+                  "y": 56,
+                  "name": "Zone Free",
+                  "fill": "$sub",
+                  "content": "빈자리 1 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "CPtdZ",
+                  "x": 16,
+                  "y": 90,
+                  "name": "Seat 15",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "uMF55",
+                  "x": 58,
+                  "y": 90,
+                  "name": "Seat 16",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "c5Fcv",
+                  "x": 100,
+                  "y": 90,
+                  "name": "Seat 17",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "oQhjU",
+                  "x": 142,
+                  "y": 90,
+                  "name": "Seat 18",
+                  "fill": "#d1d1d6",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "RJvdc",
+                  "x": 184,
+                  "y": 90,
+                  "name": "Seat 19",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "ixh3F",
+                  "x": 226,
+                  "y": 90,
+                  "name": "Seat 20",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 6,
+                  "id": "e7XLK3",
+                  "x": 268,
+                  "y": 90,
+                  "name": "Seat 21",
+                  "fill": "#3a3a3c",
+                  "width": 36,
+                  "height": 44
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QU75w",
+              "x": 120,
+              "y": 566,
+              "name": "Entrance",
+              "width": 100,
+              "height": 24,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LB31z",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Entrance Label",
+                  "fill": "$sub",
+                  "content": "▼ 입구",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
                   "fontWeight": "normal"
                 }
               ]
             },
             {
-              "type": "path",
-              "id": "eu1Ag",
-              "x": 7.643678160919535,
-              "y": 480.74074074074076,
-              "name": "Num 10",
-              "geometry": "M21.56 9.74l14.87-9.74-36.43 58.11m26.44 0l29.88 0 25.48-58.11-24.07 0-31.29 58.11",
-              "width": 81.80076628352494,
-              "height": 58.10983397190296,
-              "stroke": "#111113",
-              "strokeWidth": 4.102564102564103
+              "type": "frame",
+              "id": "n0w31",
+              "x": 346,
+              "y": 230,
+              "name": "Zoom Controls",
+              "width": 36,
+              "height": 84,
+              "fill": "#1e1e1e",
+              "cornerRadius": 18,
+              "layout": "vertical",
+              "gap": 14,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "o52oZO",
+                  "name": "Zoom In",
+                  "fill": "$text",
+                  "content": "+",
+                  "fontFamily": "$font",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "R02xT",
+                  "name": "Zoom Out",
+                  "fill": "$text",
+                  "content": "−",
+                  "fontFamily": "$font",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
-              "type": "path",
-              "id": "rp5Gl",
-              "x": 75.30303030303028,
-              "y": 409.93464052287584,
-              "name": "Num 9",
-              "geometry": "M27.07 12.52l-18.25 0 7.61-12.52 16.99 0-13.72 27.04-19.7 0",
-              "width": 33.42245989304814,
-              "height": 27.03505644682116,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.807017543859649
-            },
-            {
-              "type": "path",
-              "id": "A7ciT",
-              "x": 105.73446327683615,
-              "y": 371.3131313131313,
-              "name": "Num 8",
-              "geometry": "M0 15.58l14.69 0 7.91-15.58-13.13 0-9.47 15.58m5-8.23l13.87 0",
-              "width": 22.598870056497162,
-              "height": 15.579524054100375,
-              "stroke": "#111113",
-              "strokeWidth": 2.1333333333333333
-            },
-            {
-              "type": "path",
-              "id": "B86iU3",
-              "x": 128.51351351351352,
-              "y": 346.9958847736625,
-              "name": "Num 7",
-              "geometry": "M1.47 0l10.7 0-12.17 10.12",
-              "width": 12.165498832165497,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "dH7d8",
-              "x": 135.8239700374532,
-              "y": 330.27777777777777,
-              "name": "Num 6",
-              "geometry": "M13.34 0l-9.03 0-4.31 7.1 9.74 0 1.87-3.68-9.37 0",
-              "width": 13.342696629213464,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
-            },
-            {
-              "type": "path",
-              "id": "M6abf",
-              "x": 308.5838150289017,
-              "y": 480.74074074074076,
-              "name": "Num 11",
-              "geometry": "M0 9.74l4.01-9.74 28.38 58.11m2.29-48.37l2.66-9.74 36.43 58.11",
-              "width": 73.77250681017875,
-              "height": 58.10983397190296,
-              "stroke": "#0b1f1c",
-              "strokeWidth": 4.102564102564103
-            },
-            {
-              "type": "path",
-              "id": "un5ZP",
-              "x": 274.23387096774195,
-              "y": 409.93464052287584,
-              "name": "Num 12",
-              "geometry": "M0 4.8l3.77-4.8 13.21 27.04m1.83-27.04l16.99 0 8.47 12.52-18.24 0 8.37 14.52 19.7 0",
-              "width": 54.09946236559142,
-              "height": 27.03505644682116,
-              "stroke": "#111113",
-              "strokeWidth": 2.807017543859649
-            },
-            {
-              "type": "path",
-              "id": "KzFKW",
-              "x": 255.8359133126935,
-              "y": 371.3131313131313,
-              "name": "Num 13",
-              "geometry": "M0 2.85l3.31-2.85 7.61 15.58m4-15.58l13.13 0 10.55 15.58-14.69 0m-1.97-8.23l11.09 0",
-              "width": 38.59911493589408,
-              "height": 15.579524054100375,
-              "stroke": "#8a8a90",
-              "strokeWidth": 2.1333333333333333
-            },
-            {
-              "type": "path",
-              "id": "sKmAl",
-              "x": 244.3718592964824,
-              "y": 346.9958847736625,
-              "name": "Num 14",
-              "geometry": "M0 1.88l2.89-1.88 4.95 10.12m4.52-10.12l2.78 4.83 11.19 0m-3.27-4.83l6.85 10.12",
-              "width": 29.907419982796853,
-              "height": 10.121232343454608,
-              "stroke": "#111113",
-              "strokeWidth": 1.7204301075268815
-            },
-            {
-              "type": "path",
-              "id": "wtJa2",
-              "x": 236.54334038054967,
-              "y": 330.27777777777777,
-              "name": "Num 15",
-              "geometry": "M0 1.34l2.55-1.34 3.47 7.1m13.55-7.1l-9.03 0 1.97 3.42 9.37 0 2.49 3.68-9.73 0",
-              "width": 24.37426261570502,
-              "height": 7.100499375780316,
-              "stroke": "#111113",
-              "strokeWidth": 1.6
+              "type": "frame",
+              "id": "FQO6d",
+              "x": 16,
+              "y": 118,
+              "name": "Gesture Hint",
+              "height": 34,
+              "fill": "#1e1e1e",
+              "cornerRadius": 17,
+              "padding": [
+                0,
+                16
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Eo3Av",
+                  "name": "Hint",
+                  "fill": "#a0a0a0",
+                  "content": "두 손가락으로 확대·축소 · 끌어서 이동",
+                  "fontFamily": "$font",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
             }
           ]
         },
@@ -8819,7 +9227,7 @@
               "id": "pVlBO",
               "name": "Title",
               "fill": "$text",
-              "content": "주차 구역 선택",
+              "content": "구역 선택",
               "fontFamily": "$font",
               "fontSize": 14,
               "fontWeight": "normal"
@@ -8909,7 +9317,7 @@
                           "id": "KJqfX",
                           "name": "Value",
                           "fill": "$text",
-                          "content": "11",
+                          "content": "B",
                           "fontFamily": "$mono",
                           "fontSize": 34,
                           "fontWeight": "normal",
@@ -8920,7 +9328,7 @@
                           "id": "eb5mu",
                           "name": "Unit",
                           "fill": "$sub",
-                          "content": "번",
+                          "content": "구역",
                           "fontFamily": "$font",
                           "fontSize": 16,
                           "fontWeight": "normal"
@@ -8928,6 +9336,16 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "text",
+                  "id": "FXnQx",
+                  "name": "Free Count",
+                  "fill": "#ff3b30",
+                  "content": "빈자리 0 / 7",
+                  "fontFamily": "$font",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -8937,7 +9355,7 @@
               "name": "Primary Button",
               "width": "fill_container",
               "height": 48,
-              "fill": "#ffffff",
+              "fill": "#2c2c2e",
               "cornerRadius": 9999,
               "stroke": "#00000000",
               "justifyContent": "center",
@@ -8947,8 +9365,8 @@
                   "type": "text",
                   "id": "c0uy9",
                   "name": "Label",
-                  "fill": "#000000",
-                  "content": "11번 구역에 주차하기",
+                  "fill": "#8e8e93",
+                  "content": "가득 찬 구역이에요",
                   "fontFamily": "$font",
                   "fontSize": 15,
                   "fontWeight": "500"
@@ -9421,7 +9839,7 @@
                       "id": "Z1sVEN",
                       "name": "Value",
                       "fill": "$text",
-                      "content": "11번 구역",
+                      "content": "A구역 3번",
                       "fontFamily": "$mono",
                       "fontSize": 15,
                       "fontWeight": "normal"
@@ -9895,7 +10313,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -10966,7 +11384,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -11842,7 +12260,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -12840,7 +13258,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -13826,7 +14244,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -14523,7 +14941,7 @@
                           "id": "UAJ43",
                           "name": "Step Sub",
                           "fill": "$sub",
-                          "content": "11번 구역",
+                          "content": "A구역 3번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -14825,7 +15243,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -15943,7 +16361,7 @@
                               "id": "hAX7h",
                               "name": "Zone",
                               "fill": "$text",
-                              "content": "11번 구역",
+                              "content": "A구역 3번",
                               "fontFamily": "$font",
                               "fontSize": 20,
                               "fontWeight": "600",
@@ -16536,7 +16954,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -17278,7 +17696,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -18033,7 +18451,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -18851,7 +19269,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -19474,7 +19892,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -20504,7 +20922,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -21573,7 +21991,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 200,
@@ -22530,7 +22948,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 200,
@@ -23422,7 +23840,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -28243,7 +28661,7 @@
                               "type": "text",
                               "id": "S1YqYF",
                               "fill": "#6b6b6b",
-                              "content": "11번 구역에 주차했어요",
+                              "content": "A구역 3번 자리에 주차했어요",
                               "fontFamily": "$font",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -28898,7 +29316,7 @@
                           "type": "text",
                           "id": "LBrkp",
                           "fill": "#a0a0a0",
-                          "content": "충전기 1번 · 18% → 80% · 11번 구역",
+                          "content": "충전기 1번 · 18% → 80% · B구역 11번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -28960,7 +29378,7 @@
                           "type": "text",
                           "id": "cLdzk",
                           "fill": "#a0a0a0",
-                          "content": "충전기 2번 · 30% → 80% · 2번 구역",
+                          "content": "충전기 2번 · 30% → 80% · A구역 2번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -29084,7 +29502,7 @@
                           "type": "text",
                           "id": "IFVjH",
                           "fill": "#a0a0a0",
-                          "content": "충전기 1번 · 22% → 90% · 11번 구역",
+                          "content": "충전기 1번 · 22% → 90% · B구역 11번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -29146,7 +29564,7 @@
                           "type": "text",
                           "id": "wjVtw",
                           "fill": "#a0a0a0",
-                          "content": "충전기 3번 · 41% → 80% · 7번 구역",
+                          "content": "충전기 3번 · 41% → 80% · A구역 7번",
                           "fontFamily": "$font",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -29611,7 +30029,7 @@
                       "type": "text",
                       "id": "BYvLE",
                       "fill": "#ffffff",
-                      "content": "11번 구역",
+                      "content": "A구역 3번",
                       "fontFamily": "$font",
                       "fontSize": 15,
                       "fontWeight": "normal"
@@ -30972,7 +31390,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "../dashboard/ev01_photo.png",
+                    "url": "../frontend/assets/car.png",
                     "mode": "fit"
                   },
                   "width": 260,
@@ -31766,6 +32184,2081 @@
                   "fontFamily": "$font",
                   "fontSize": 10,
                   "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "SqlvB",
+      "x": 940,
+      "y": 1244,
+      "name": "02.03 구역 안 맵 · 자리 선택",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "$bg",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "A0l9J9",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "Parking Map",
+          "clip": true,
+          "width": 390,
+          "height": 640,
+          "fill": "#000000",
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Q3Glgx",
+              "x": 35,
+              "y": 170,
+              "name": "Seat 1",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "GPfXR",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "OE35b",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "1",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "I7nUc",
+              "x": 117,
+              "y": 170,
+              "name": "Seat 2",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "KlbFM",
+                  "x": 67,
+                  "y": 10,
+                  "name": "Car",
+                  "rotation": 270,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "GuGpp",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "2",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nAgRg",
+              "x": 199,
+              "y": 170,
+              "name": "Seat 3",
+              "width": 74,
+              "height": 132,
+              "fill": "#68D2C3",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Tbghu",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#00302a",
+                  "content": "3",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gYKtg",
+              "x": 281,
+              "y": 170,
+              "name": "Seat 4",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E2svK",
+                  "x": 31,
+                  "y": 102,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "4",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dxV97",
+              "x": 35,
+              "y": 410,
+              "name": "Seat 5",
+              "width": 74,
+              "height": 132,
+              "fill": "#262628",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "Q8ZI8f",
+                  "x": 7,
+                  "y": 122,
+                  "name": "Car",
+                  "rotation": 90,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../generated_car_v4.png",
+                    "mode": "fit",
+                    "blendMode": "screen"
+                  },
+                  "width": 112,
+                  "height": 60
+                },
+                {
+                  "type": "text",
+                  "id": "NAGlW",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#8e8e93",
+                  "content": "5",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "uIGkH",
+              "x": 117,
+              "y": 410,
+              "name": "Seat 6",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e98aH",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "6",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "E2Gxn",
+              "x": 199,
+              "y": 410,
+              "name": "Seat 7",
+              "width": 74,
+              "height": 132,
+              "fill": "#cfcfd4",
+              "cornerRadius": 12,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "S5Q9uX",
+                  "x": 31,
+                  "y": 8,
+                  "name": "Seat Number",
+                  "fill": "#3a3a3c",
+                  "content": "7",
+                  "fontFamily": "$mono",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JAr2D",
+              "x": 281,
+              "y": 410,
+              "name": "Entrance",
+              "width": 74,
+              "height": 132,
+              "cornerRadius": 12,
+              "stroke": "#3a3a3c",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 6,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Y9RsOm",
+                  "name": "Arrow",
+                  "fill": "#8e8e93",
+                  "content": "▼",
+                  "fontFamily": "$font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "UWV62",
+                  "name": "Entrance Text",
+                  "fill": "#8e8e93",
+                  "content": "입구",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vREJf",
+              "x": 35,
+              "y": 320,
+              "name": "Lane Guide",
+              "width": 320,
+              "height": 72,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RSZAJ",
+                  "name": "Lane Text",
+                  "fill": "#5a5a5e",
+                  "content": "차량이 지나가는 길",
+                  "fontFamily": "$font",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Qkhje",
+              "x": 0,
+              "y": 566,
+              "name": "Legend",
+              "width": 390,
+              "height": 24,
+              "gap": 18,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "sD06t",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "ZTRlc",
+                      "name": "Dot",
+                      "fill": "#cfcfd4",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#00000000",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "Mt6Sr",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "선택 가능",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "K6wHM",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "eZxNn",
+                      "name": "Dot",
+                      "fill": "#262628",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#5a5a5e",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "VpeQL",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "이미 있음",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XFB0Z",
+                  "name": "Legend Item",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "P4wwun",
+                      "name": "Dot",
+                      "fill": "#68D2C3",
+                      "width": 10,
+                      "height": 10,
+                      "stroke": "#00000000",
+                      "strokeWidth": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "Y0WUe",
+                      "name": "Legend Text",
+                      "fill": "$sub",
+                      "content": "내 자리",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "l9zKI",
+          "x": 0,
+          "y": 0,
+          "name": "Top Scrim",
+          "fill": "#000000",
+          "width": 390,
+          "height": 112
+        },
+        {
+          "type": "frame",
+          "id": "TJTb5",
+          "x": 0,
+          "y": 0,
+          "name": "Status Bar",
+          "width": 390,
+          "height": 62,
+          "padding": [
+            0,
+            28
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "K1Joo",
+              "name": "Time",
+              "fill": "$text",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "a1bTmn",
+              "name": "Status Icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "klo0h",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$text"
+                },
+                {
+                  "type": "icon",
+                  "id": "er8Q5",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BG27p",
+          "x": 16,
+          "y": 62,
+          "name": "Back",
+          "width": 44,
+          "height": 44,
+          "fill": "#00000000",
+          "cornerRadius": 22,
+          "stroke": "$line",
+          "strokeWidth": 1,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "vahfS",
+              "width": 22,
+              "height": 22,
+              "icon": "chevron-left",
+              "library": "lucide",
+              "fill": "$text"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "e1BSAQ",
+          "x": 68,
+          "y": 62,
+          "name": "Title Chip",
+          "height": 44,
+          "fill": "#00000000",
+          "cornerRadius": 980,
+          "stroke": "#00000000",
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "XHjWq",
+              "name": "Title",
+              "fill": "$text",
+              "content": "A구역 · 빈자리 4",
+              "fontFamily": "$font",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "y29V5",
+          "x": 0,
+          "y": 640,
+          "name": "Bottom Sheet",
+          "width": 390,
+          "height": 204,
+          "fill": "#1e1e1e",
+          "cornerRadius": [
+            16,
+            16,
+            0,
+            0
+          ],
+          "stroke": "$line",
+          "strokeWidth": {
+            "top": 1
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            10,
+            24,
+            28,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "q5XD3A",
+              "name": "Handle Wrap",
+              "width": "fill_container",
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "x3oXa",
+                  "name": "Handle",
+                  "fill": "$line",
+                  "width": 36,
+                  "height": 4
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YWF5y",
+              "name": "Selected Row",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ATAMH",
+                  "name": "Selected Text",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YM334",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "선택한 자리",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TDG1G",
+                      "name": "Value Row",
+                      "gap": 4,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "z8RIp",
+                          "name": "Value",
+                          "fill": "$text",
+                          "content": "3",
+                          "fontFamily": "$mono",
+                          "fontSize": 34,
+                          "fontWeight": "normal",
+                          "letterSpacing": -1
+                        },
+                        {
+                          "type": "text",
+                          "id": "W49WH",
+                          "name": "Unit",
+                          "fill": "$sub",
+                          "content": "번",
+                          "fontFamily": "$font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "XRXxF",
+                  "name": "Free Count",
+                  "fill": "#68D2C3",
+                  "content": "A구역",
+                  "fontFamily": "$font",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lPcrp",
+              "name": "Primary Button",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#ffffff",
+              "cornerRadius": 9999,
+              "stroke": "#00000000",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "z8EPZx",
+                  "name": "Label",
+                  "fill": "#000000",
+                  "content": "3번 자리에 주차하기",
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "R7kqrV",
+      "x": 2820,
+      "y": 1244,
+      "name": "02.01-A 주차 완료 시각 선택",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#000000",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "cFSDA",
+          "x": 0,
+          "y": 0,
+          "name": "02.01 충전 요청 (배경)",
+          "clip": true,
+          "width": 390,
+          "fill": "$bg",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "w1Ym7",
+              "name": "Status Bar",
+              "width": "fill_container",
+              "height": 62,
+              "padding": [
+                0,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qwJrw",
+                  "name": "Time",
+                  "fill": "$text",
+                  "content": "9:41",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "s3KVAF",
+                  "name": "Status Icons",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "agP7y",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "signal",
+                      "library": "lucide",
+                      "fill": "$text"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "hVdyF",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "battery-full",
+                      "library": "lucide",
+                      "fill": "$text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lAGjn",
+              "name": "Content",
+              "width": "fill_container",
+              "layout": "vertical",
+              "padding": [
+                4,
+                24,
+                16,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "S5jRE",
+                  "name": "Title Block",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": [
+                    0,
+                    0,
+                    20,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dw60b",
+                      "name": "Eyebrow",
+                      "fill": "$sub",
+                      "content": "새 요청",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "fhPSy",
+                      "name": "Title",
+                      "fill": "$text",
+                      "content": "충전 요청",
+                      "fontFamily": "$font",
+                      "fontSize": 32,
+                      "fontWeight": "normal",
+                      "letterSpacing": -1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wRNBy",
+                  "name": "Vehicle Row",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oQfzK",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "차량",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "f5W1kf",
+                      "name": "Value",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LDuun",
+                          "name": "Plate",
+                          "fill": "$text",
+                          "content": "12가 3456",
+                          "fontFamily": "$font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z3xChg",
+                          "name": "Battery",
+                          "fill": "$sub",
+                          "content": "38%",
+                          "fontFamily": "$mono",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "r2cMg",
+                  "name": "Time Row",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ps62q",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "주차 완료 시각",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "s1oFUd",
+                      "name": "Value",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "z3WMh",
+                          "name": "Value",
+                          "fill": "$text",
+                          "content": "오늘 6:30 PM",
+                          "fontFamily": "$font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "L0Z7Op",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Q3DUb",
+                  "name": "Target SOC",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": [
+                    14,
+                    0,
+                    18,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "M7JGa7",
+                      "name": "SOC Head",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "GS81I",
+                          "name": "Label",
+                          "fill": "$sub",
+                          "content": "목표 충전량",
+                          "fontFamily": "$font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "L3rt0",
+                          "name": "Value Row",
+                          "gap": 2,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "uu5La",
+                              "name": "Value",
+                              "fill": "$text",
+                              "content": "80",
+                              "fontFamily": "$mono",
+                              "fontSize": 28,
+                              "fontWeight": "normal",
+                              "letterSpacing": -1
+                            },
+                            {
+                              "type": "text",
+                              "id": "bL76J",
+                              "name": "Unit",
+                              "fill": "$sub",
+                              "content": "%",
+                              "fontFamily": "$mono",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iyBE8",
+                      "name": "Slider",
+                      "width": "fill_container",
+                      "height": 20,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "i7Vio",
+                          "x": 0,
+                          "y": 8,
+                          "name": "Track",
+                          "fill": "$line",
+                          "width": 342,
+                          "height": 4
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "MlTeq",
+                          "x": 0,
+                          "y": 8,
+                          "name": "Track Fill",
+                          "fill": "$primary",
+                          "width": 171,
+                          "height": 4
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "DoJyx",
+                          "x": 161,
+                          "y": 0,
+                          "name": "Knob",
+                          "fill": "#FFFFFF",
+                          "width": 20,
+                          "height": 20
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nE6GS",
+                      "name": "Range",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "f3OZA",
+                          "name": "Min",
+                          "fill": "$muted",
+                          "content": "60%",
+                          "fontFamily": "$mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RaNtb",
+                          "name": "Max",
+                          "fill": "$muted",
+                          "content": "100%",
+                          "fontFamily": "$mono",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b2RzS",
+                  "name": "Min SOC Row",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JEmwL",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "최소 필요 충전량",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Wy5MV",
+                      "name": "Value",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xTBe5",
+                          "name": "Value",
+                          "fill": "$text",
+                          "content": "60%",
+                          "fontFamily": "$font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "k1OI8X",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vAJSp",
+                  "name": "Zone Row",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i1PVAR",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "주차 구역",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yqy1p",
+                      "name": "Value",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rT2uL",
+                          "name": "Value",
+                          "fill": "$text",
+                          "content": "A구역 3번",
+                          "fontFamily": "$mono",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "C7VMu",
+                          "name": "Hint",
+                          "fill": "$primary-text",
+                          "content": "지도에서 선택",
+                          "fontFamily": "$font",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "kFAry",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "$muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OIgbP",
+                  "name": "Feasibility",
+                  "width": "fill_container",
+                  "fill": "#00000000",
+                  "stroke": "#00000000",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": [
+                    16,
+                    0,
+                    4,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "LHZBE",
+                      "name": "Verdict",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "LJpod",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "EqDgs",
+                              "fill": "#24cb71",
+                              "width": 7,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "viu3J",
+                              "name": "Title",
+                              "fill": "#ffffff",
+                              "content": "시간 안에 가능해요",
+                              "fontFamily": "$font",
+                              "fontSize": 15,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "K9JLn",
+                          "name": "ETA",
+                          "fill": "#a0a0a0",
+                          "content": "6:12 PM 완료",
+                          "fontFamily": "$mono",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "huIln",
+                      "name": "Timeline",
+                      "width": "fill_container",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "K25Q9",
+                          "opacity": 0.25,
+                          "fill": "#ffffff",
+                          "width": 31,
+                          "height": 4
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "fKUzM",
+                          "opacity": 0.5,
+                          "fill": "#ffffff",
+                          "width": 6,
+                          "height": 4
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "o1eZOK",
+                          "fill": "#ffffff",
+                          "width": 293,
+                          "height": 4
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "PZsyM",
+                          "opacity": 0.5,
+                          "fill": "#ffffff",
+                          "width": 6,
+                          "height": 4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "WxOgC",
+                      "name": "Legend",
+                      "fill": "#6b6b6b",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "대기 5분 · 이동 1분 · 충전 48분 · 주차 이동 1분",
+                      "fontFamily": "$font",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "a4rEOu",
+                  "name": "Footer",
+                  "width": "fill_container",
+                  "stroke": "#00000000",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": [
+                    18,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qCvWb",
+                      "name": "Consent",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "fzItb",
+                          "name": "Checkbox",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "$primary",
+                          "cornerRadius": 4,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "glsVq",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "check",
+                              "library": "lucide",
+                              "fill": "#000000"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "m6eUg5",
+                          "name": "Text",
+                          "fill": "$sub",
+                          "content": "차량 운행 및 위치 정보 이용에 동의합니다.",
+                          "fontFamily": "$font",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LxlPt",
+                      "name": "Primary Button",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#ffffff",
+                      "cornerRadius": 9999,
+                      "stroke": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "KyRbQ",
+                          "name": "Label",
+                          "fill": "#000000",
+                          "content": "충전 요청하기",
+                          "fontFamily": "$font",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "M34bv",
+              "name": "Tab Bar",
+              "width": "fill_container",
+              "height": 72,
+              "stroke": "#00000000",
+              "strokeWidth": {
+                "top": 1
+              },
+              "padding": [
+                8,
+                16,
+                18,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ZZ3os",
+                  "name": "Tab 홈",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Z6W8iT",
+                      "width": 22,
+                      "height": 22,
+                      "icon": "house",
+                      "library": "lucide",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CrL0Q",
+                      "name": "Label",
+                      "fill": "$muted",
+                      "content": "홈",
+                      "fontFamily": "$font",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NYazO",
+                  "name": "Tab 충전 요청",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "A9Zhz",
+                      "width": 22,
+                      "height": 22,
+                      "icon": "zap",
+                      "library": "lucide",
+                      "fill": "$text"
+                    },
+                    {
+                      "type": "text",
+                      "id": "gvhIC",
+                      "name": "Label",
+                      "fill": "$text",
+                      "content": "충전 요청",
+                      "fontFamily": "$font",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RGH24",
+                  "name": "Tab 내 정보",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Q2M0n",
+                      "width": 22,
+                      "height": 22,
+                      "icon": "user",
+                      "library": "lucide",
+                      "fill": "$muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KA94Q",
+                      "name": "Label",
+                      "fill": "$muted",
+                      "content": "내 정보",
+                      "fontFamily": "$font",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "NZ1Kn",
+          "x": 0,
+          "y": 0,
+          "name": "Dim",
+          "opacity": 0.62,
+          "fill": "#000000",
+          "width": 390,
+          "height": 844
+        },
+        {
+          "type": "frame",
+          "id": "SwfIm",
+          "x": 0,
+          "y": 358,
+          "name": "Time Sheet",
+          "width": 390,
+          "height": 486,
+          "fill": "#151517",
+          "cornerRadius": [
+            26,
+            26,
+            0,
+            0
+          ],
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            8,
+            24,
+            28,
+            24
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 3,
+              "id": "SePPl",
+              "name": "Grabber",
+              "fill": "#48484a",
+              "width": 38,
+              "height": 5
+            },
+            {
+              "type": "frame",
+              "id": "y1sNx",
+              "width": "fill_container",
+              "height": 32,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RULgz",
+                  "fill": "$sub",
+                  "content": "취소",
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Z4aDLr",
+                  "fill": "$text",
+                  "content": "주차 완료 시각",
+                  "fontFamily": "$font",
+                  "fontSize": 17,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "Y9SLgX",
+                  "fill": "#68D2C3",
+                  "content": "완료",
+                  "fontFamily": "$font",
+                  "fontSize": 15,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tcIEQ",
+              "width": "fill_container",
+              "height": 34,
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fnuYL",
+                  "height": 32,
+                  "fill": "#ffffff",
+                  "cornerRadius": 16,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xac1N",
+                      "fill": "#000000",
+                      "content": "오늘",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "nOeyh",
+                  "height": 32,
+                  "fill": "#2c2c2e",
+                  "cornerRadius": 16,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fOyFF",
+                      "fill": "$sub",
+                      "content": "내일",
+                      "fontFamily": "$font",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kcMlw",
+              "name": "Wheel",
+              "clip": true,
+              "width": 342,
+              "height": 220,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 20,
+                  "id": "PxKrK",
+                  "x": 0,
+                  "y": 90,
+                  "name": "Selection",
+                  "fill": "#2c2c2e",
+                  "width": 342,
+                  "height": 40
+                },
+                {
+                  "type": "frame",
+                  "id": "miPTz",
+                  "x": 0,
+                  "y": 50,
+                  "opacity": 0.55,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "QYNRY",
+                      "fill": "$sub",
+                      "content": "오전",
+                      "fontFamily": "$font",
+                      "fontSize": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "IKA9V",
+                  "x": 0,
+                  "y": 90,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bx92F",
+                      "fill": "$text",
+                      "content": "오후",
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lSBGl",
+                  "x": 114,
+                  "y": -30,
+                  "opacity": 0.14,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RR9s4",
+                      "fill": "$sub",
+                      "content": "3",
+                      "fontFamily": "$font",
+                      "fontSize": 16
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ORhtf",
+                  "x": 114,
+                  "y": 10,
+                  "opacity": 0.3,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "g7brT",
+                      "fill": "$sub",
+                      "content": "4",
+                      "fontFamily": "$font",
+                      "fontSize": 18
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "q5Tbg8",
+                  "x": 114,
+                  "y": 50,
+                  "opacity": 0.55,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xzkHm",
+                      "fill": "$sub",
+                      "content": "5",
+                      "fontFamily": "$font",
+                      "fontSize": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Ogdou",
+                  "x": 114,
+                  "y": 90,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "L6YJs",
+                      "fill": "$text",
+                      "content": "6",
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AfCBl",
+                      "fill": "$text",
+                      "content": "시",
+                      "fontFamily": "$font",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HJHkq",
+                  "x": 114,
+                  "y": 130,
+                  "opacity": 0.55,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JOluD",
+                      "fill": "$sub",
+                      "content": "7",
+                      "fontFamily": "$font",
+                      "fontSize": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uqa8j",
+                  "x": 114,
+                  "y": 170,
+                  "opacity": 0.3,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oPlPU",
+                      "fill": "$sub",
+                      "content": "8",
+                      "fontFamily": "$font",
+                      "fontSize": 18
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PFP7O",
+                  "x": 114,
+                  "y": 210,
+                  "opacity": 0.14,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hgvMS",
+                      "fill": "$sub",
+                      "content": "9",
+                      "fontFamily": "$font",
+                      "fontSize": 16
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "X82HPq",
+                  "x": 228,
+                  "y": -30,
+                  "opacity": 0.14,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "PcDP1",
+                      "fill": "$sub",
+                      "content": "15",
+                      "fontFamily": "$font",
+                      "fontSize": 16
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "YxkcW",
+                  "x": 228,
+                  "y": 10,
+                  "opacity": 0.3,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YIXJK",
+                      "fill": "$sub",
+                      "content": "20",
+                      "fontFamily": "$font",
+                      "fontSize": 18
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MAxP4",
+                  "x": 228,
+                  "y": 50,
+                  "opacity": 0.55,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qwOsZ",
+                      "fill": "$sub",
+                      "content": "25",
+                      "fontFamily": "$font",
+                      "fontSize": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jHnbl",
+                  "x": 228,
+                  "y": 90,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WhZ5n",
+                      "fill": "$text",
+                      "content": "30",
+                      "fontFamily": "$font",
+                      "fontSize": 22,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TwhAO",
+                      "fill": "$text",
+                      "content": "분",
+                      "fontFamily": "$font",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "H2DJib",
+                  "x": 228,
+                  "y": 130,
+                  "opacity": 0.55,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "C5KEL",
+                      "fill": "$sub",
+                      "content": "35",
+                      "fontFamily": "$font",
+                      "fontSize": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kiW3S",
+                  "x": 228,
+                  "y": 170,
+                  "opacity": 0.3,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "h4XSE",
+                      "fill": "$sub",
+                      "content": "40",
+                      "fontFamily": "$font",
+                      "fontSize": 18
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I4iJm",
+                  "x": 228,
+                  "y": 210,
+                  "opacity": 0.14,
+                  "width": 114,
+                  "height": 40,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GlxCC",
+                      "fill": "$sub",
+                      "content": "45",
+                      "fontFamily": "$font",
+                      "fontSize": 16
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "ANwBQ",
+              "fill": "$sub",
+              "textGrowth": "fixed-width",
+              "width": 342,
+              "content": "오늘 오후 6:30까지 주차 완료",
+              "textAlign": "center",
+              "fontFamily": "$font",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "cJ83t",
+              "width": "fill_container",
+              "height": 54,
+              "fill": "#ffffff",
+              "cornerRadius": 27,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qhvO5",
+                  "fill": "#000000",
+                  "content": "이 시각으로 설정",
+                  "fontFamily": "$font",
+                  "fontSize": 16,
+                  "fontWeight": "600"
                 }
               ]
             }

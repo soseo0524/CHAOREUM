@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite://")  # 기본: 메모리 SQLite(개발·테스트). 운영은 Supabase Postgres URL
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite://"  # 기본: 메모리 SQLite(개발·테스트). 운영은 Supabase Postgres URL
 
 
 def _make_engine(url: str):

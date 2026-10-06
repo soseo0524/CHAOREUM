@@ -405,29 +405,44 @@ def test_cost_keeps_the_price_at_session_start(monkeypatch):
     assert after["unit_price_won"] == before["unit_price_won"] and after["cost_won"] == before["cost_won"]  # 단가를 바꿔도 지난 세션 금액은 그대로
 
 
-def test_parking_map_rows_states_and_selected():
-    r = client.get("/parking-zones/map", headers=UH).json()
-    assert r["row"] == 0 and r["total_rows"] == 11 and len(r["rows"]) == 5
-    first = r["rows"][0]
-    assert first["left"]["seat_no"] == 10 and first["right"]["seat_no"] == 11  # 가까운 줄: 왼쪽 10, 오른쪽 11
-    assert [x["left"]["seat_no"] for x in r["rows"]] == [10, 9, 8, 7, 6] and [x["right"]["seat_no"] for x in r["rows"]] == [11, 12, 13, 14, 15]
-    assert all(x[side]["state"] == "FREE" for x in r["rows"] for side in ("left", "right"))
-    # 앞으로 끌면(row↑) 보이는 칸이 바뀐다. 마지막 줄은 21번만 있다
-    far = client.get("/parking-zones/map?row=10&depth=5", headers=UH).json()
-    assert len(far["rows"]) == 1 and far["rows"][0]["left"] is None and far["rows"][0]["right"]["seat_no"] == 21
-    assert client.get("/parking-zones/map?row=99", headers=UH).json()["row"] == 10  # 범위 밖은 끝으로
-    # 고르는 중인 자리는 MINE, 남이 선정한 자리는 TAKEN
-    sel = client.get("/parking-zones/map?selected=PARKING_11", headers=UH).json()
-    assert sel["rows"][0]["right"]["state"] == "MINE" and sel["selected_ok"] is True
+def test_parking_areas_overview_and_detail():
+    r = client.get("/parking-zones/areas", headers=UH).json()["areas"]
+    assert [a["area_id"] for a in r] == ["A", "B", "C"] and [a["name"] for a in r] == ["A구역", "B구역", "C구역"]
+    assert all(a["seat_total"] == 7 and a["free_count"] == 7 and a["state"] == "OPEN" and not a["has_mine"] for a in r)
+    assert [x["seat_no"] for x in r[0]["seats"]] == list(range(1, 8)) and r[2]["seats"][0]["zone_id"] == "PARKING_15"
+    d = client.get("/parking-zones/areas/a", headers=UH).json()  # 대소문자 무관
+    assert d["area_id"] == "A" and d["rows"] == 2 and d["cols"] == 4 and d["entrance"] == {"row": 1, "col": 3}
+    pos = {x["seat_no"]: (x["row"], x["col"]) for x in d["seats"]}
+    assert pos[1] == (0, 0) and pos[4] == (0, 3) and pos[5] == (1, 0) and pos[7] == (1, 2)  # 윗줄 4칸 + 아랫줄 3칸
+    assert d["selected_ok"] is None and all(x["state"] == "FREE" for x in d["seats"])
+    assert client.get("/parking-zones/areas/Z", headers=UH).status_code == 404
+    assert client.get("/parking-zones/areas").status_code in (401, 403)
+    # 고르는 중인 자리는 MINE, 구역 밖 자리를 보내도 이 구역은 그대로
+    sel = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()
+    assert [x["state"] for x in sel["seats"] if x["seat_no"] == 3] == ["MINE"] and sel["selected_ok"] is True
+    # 다른 사용자가 3번을 선정하면 TAKEN(02-A.02), 내 쪽 selected_ok=false. 주인 화면에서는 MINE
     other = uuid.uuid4(); oh = H(other, "user")
     ov = client.post("/vehicles", headers=oh, json=dict(plate_no="99허9999", battery_kwh=60, max_charge_kw=11)).json()["id"]
     assign(ov, "CAR_02"); client.post("/consents", headers=oh, json=dict(version="v1"))
-    assert client.post("/charge-requests", headers=oh, json=body(ov, parking_zone_id="PARKING_11")).status_code == 201
-    mine_view = client.get("/parking-zones/map?selected=PARKING_11", headers=UH).json()
-    assert mine_view["rows"][0]["right"]["state"] == "TAKEN" and mine_view["selected_ok"] is False  # 4-1: 이미 선정된 자리
-    owner_view = client.get("/parking-zones/map", headers=oh).json()
-    assert owner_view["rows"][0]["right"]["state"] == "MINE"  # 내가 잡은 자리는 내 화면에서 MINE
-    assert client.get("/parking-zones/map").status_code in (401, 403)
+    assert client.post("/charge-requests", headers=oh, json=body(ov, parking_zone_id="PARKING_03")).status_code == 201
+    mine_view = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()
+    assert [x["state"] for x in mine_view["seats"] if x["seat_no"] == 3] == ["TAKEN"] and mine_view["selected_ok"] is False and mine_view["free_count"] == 6
+    owner_view = client.get("/parking-zones/areas/A", headers=oh).json()
+    assert [x["state"] for x in owner_view["seats"] if x["seat_no"] == 3] == ["MINE"]
+    ov_all = client.get("/parking-zones/areas", headers=oh).json()["areas"]
+    assert ov_all[0]["has_mine"] is True and ov_all[0]["free_count"] == 7 and ov_all[1]["has_mine"] is False  # 내 자리는 내 화면에서 빈자리로 세지 않는 TAKEN이 아님
+    assert client.get("/parking-zones/areas", headers=UH).json()["areas"][0]["free_count"] == 6
+
+
+def test_full_area_is_marked_full():
+    with SessionLocal() as db:
+        for n in range(8, 15):
+            z = db.get(m.ParkingZone, f"PARKING_{n:02d}")
+            z.capacity = 0
+        db.commit()
+    areas = {a["area_id"]: a for a in client.get("/parking-zones/areas", headers=UH).json()["areas"]}
+    assert areas["B"]["state"] == "FULL" and areas["B"]["free_count"] == 0 and areas["A"]["state"] == "OPEN"
+    assert client.get("/parking-zones/areas/B", headers=UH).json()["state"] == "FULL"
 
 
 def hs():

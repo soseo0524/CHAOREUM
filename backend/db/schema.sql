@@ -270,3 +270,36 @@ alter table consents enable row level security;
 alter table audit_logs enable row level security;
 alter table settings enable row level security;
 alter table push_tokens enable row level security;
+
+-- ───────── Supabase Auth 연동 ─────────
+-- 가입 시 profiles 행을 만든다(app_role은 기본 'user'. 사용자 메타데이터에서 권한을 읽지 않는다).
+create function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+    insert into public.profiles (id) values (new.id) on conflict (id) do nothing;
+    return new;
+end;
+$$;
+create trigger on_auth_user_created after insert on auth.users
+    for each row execute function public.handle_new_user();
+
+-- Custom Access Token Hook: profiles.app_role을 JWT의 app_role 클레임으로 넣는다.
+-- 적용 후 Supabase 대시보드 Authentication > Hooks에서 이 함수를 선택해 켠다.
+create function public.custom_access_token_hook(event jsonb) returns jsonb
+language plpgsql stable as $$
+declare
+    claims jsonb := event->'claims';
+    r public.app_role_enum;
+begin
+    select app_role into r from public.profiles where id = (event->>'user_id')::uuid;
+    claims := jsonb_set(claims, '{app_role}', to_jsonb(coalesce(r, 'user')::text));
+    return jsonb_set(event, '{claims}', claims);
+end;
+$$;
+grant usage on schema public to supabase_auth_admin;
+grant execute on function public.custom_access_token_hook to supabase_auth_admin;
+revoke execute on function public.custom_access_token_hook from authenticated, anon, public;
+grant select on table public.profiles to supabase_auth_admin;
+-- 훅 전용 읽기 policy(앱용 아님. anon/authenticated에는 여전히 policy 없음)
+create policy auth_admin_read_profiles on public.profiles as permissive for select
+    to supabase_auth_admin using (true);

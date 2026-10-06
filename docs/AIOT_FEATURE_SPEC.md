@@ -163,6 +163,21 @@
 - 내 정보·차량 관리·충전 이력은 기존 API(`/me`, `/vehicles`, `/me/sessions`)로 이미 제공.
 - 아직 실제 Supabase·ROS2 연결로 검증한 것은 아님(SQLite 테스트 49개 통과).
 
+### 3.y 주차 지도 API (구역 → 자리 2단계)
+
+주차 위치는 두 단계로 고른다. 모바일 화면에 지하 주차장 전체를 한 번에 그릴 수 없어서, 전체 지도에서 구역을 먼저 정하고 구역 안에서 자리를 고른다.
+
+| 화면 | API | 내용 |
+|---|---|---|
+| 02.02 전체 지도 | `GET /parking-zones/areas` | 구역 A(1~7번)·B(8~14번)·C(15~21번)별 `free_count`(빈자리 수), `state`(OPEN/FULL), `has_mine`, 구역 카드의 미니 현황용 `seats[]`. 확대·축소·이동은 앱이 처리 |
+| 02.03 구역 안 맵 | `GET /parking-zones/areas/{area_id}` | 자리별 `state`(TAKEN=차 있음, FREE=빈자리, MINE=내 자리·고르는 중), `row`/`col`(윗줄 4칸, 아랫줄 3칸+입구 칸), `entrance` |
+| 02-A.02 이미 선정된 자리 | 같은 API + `?selected=PARKING_03` | 그 자리가 이미 선정됐으면 `selected_ok=false`(그 자리는 TAKEN). 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
+| 02-A.03 가득 찬 구역 | 위 두 API의 `state=FULL` | 앱이 "가득 찬 구역이에요"로 버튼을 막는다 |
+
+- 자리 번호 n = 주차 구역 `PARKING_nn`(capacity 1). 고른 자리의 `zone_id`를 충전 요청의 `parking_zone_id`로 보낸다.
+- 옛 1인칭 줄 방식 `GET /parking-zones/map`은 삭제했다.
+- 구역 묶음(A·B·C)은 서버 코드(`schemas/parking_map.py`의 `AREAS`)에 있고 DB에는 없다. 구역 수·범위를 바꾸려면 이 값만 고치면 된다.
+
 ## 4. 관리자 앱 (웹, 다른 담당자가 제작)
 
 > 이 장은 관리자 웹 담당자에게 넘기는 화면·기능 요구사항이다. Expo 앱의 구현 범위가 아니며, 모바일 전제 표현은 웹(데스크톱 브라우저)에 맞게 조정해도 된다. 이 프로젝트의 책임은 5.2의 관리자 API와 WebSocket이다.

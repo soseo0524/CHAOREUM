@@ -14,3 +14,12 @@ def seed_dev(db):
     for zid, name, kind in zones:
         db.add(m.ParkingZone(id=zid, name=name, kind=kind, capacity=1 if kind == ParkingZoneKind.PARKING else 2, pose_x=0.0, pose_y=0.0, pose_yaw=0.0))
     db.commit()
+
+
+if __name__ == "__main__":  # 운영 DB(Postgres)에 충전기·주차 구역 기본 데이터를 넣는다: cd backend && python seed.py
+    from database import SessionLocal
+
+    with SessionLocal() as _db:
+        seed_dev(_db)
+        _db.commit()
+    print("seed 완료(이미 있으면 건너뜀)")
