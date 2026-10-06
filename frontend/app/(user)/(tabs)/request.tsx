@@ -1,15 +1,16 @@
 // 02.01 충전 요청 / 02-A.04 접수된 요청 수정 / 02.04 위임 동의 시트
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
 import { router } from 'expo-router';
 import { BatteryCharging, FileText, KeyRound, MapPin } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Modal, Pressable, View } from 'react-native';
 
+import { ParkingMap } from '@/components/parking-map';
+import { TimeWheelSheet } from '@/components/time-wheel-sheet';
 import { Button, Checkbox, Row, Screen, T, Title } from '@/components/ui';
 import { clockText, dayClock, zoneLabel } from '@/constants/format';
 import { C } from '@/constants/theme';
-import { HomeState, type Feasibility, type ParkingZone } from '@/constants/types';
+import { HomeState, type Feasibility } from '@/constants/types';
 import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 import { useAuth } from '@/services/auth';
@@ -39,8 +40,8 @@ export default function Request() {
   const [feas, setFeas] = useState<Feasibility | null>(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [iosPicker, setIosPicker] = useState(false);
-  const [zones, setZones] = useState<ParkingZone[] | null>(null);
+  const [timeSheet, setTimeSheet] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [sheet, setSheet] = useState(false);
 
   // 수정 모드면 접수된 값으로 채운다
@@ -115,22 +116,6 @@ export default function Request() {
     );
   }
 
-  function pickTime() {
-    if (Platform.OS === 'ios') return setIosPicker(true);
-    DateTimePickerAndroid.open({
-      value: finish,
-      mode: 'date',
-      minimumDate: new Date(),
-      onValueChange: (_e, date) => {
-        DateTimePickerAndroid.open({
-          value: date,
-          mode: 'time',
-          onValueChange: (_e2, time) => setFinish(time),
-        });
-      },
-    });
-  }
-
   function pickMinSoc() {
     Alert.alert('최소 필요 충전량', '시간이 부족해도 이만큼은 먼저 충전해요.', [
       ...MIN_SOC_OPTIONS.filter((o) => o <= target).map((o) => ({
@@ -139,16 +124,6 @@ export default function Request() {
       })),
       { text: '닫기', style: 'cancel' as const },
     ]);
-  }
-
-  async function openZones() {
-    setZones([]);
-    try {
-      setZones(await api.parkingZones());
-    } catch (e: any) {
-      setZones(null);
-      Alert.alert('주차 구역', e.message);
-    }
   }
 
   async function submit(consented = profile?.consent_agreed) {
@@ -225,7 +200,7 @@ export default function Request() {
           {v.soc == null ? '—' : `${Math.round(v.soc)}%`}
         </T>
       </Row>
-      <Row label="주차 완료 시각" onPress={pickTime}>
+      <Row label="주차 완료 시각" onPress={() => setTimeSheet(true)}>
         <T style={{ fontSize: 15 }}>{dayClock(finish)}</T>
       </Row>
       <View style={{ gap: 14, paddingTop: 14, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: C.line }}>
@@ -262,7 +237,7 @@ export default function Request() {
       <Row label="최소 필요 충전량" onPress={pickMinSoc}>
         <T style={{ fontSize: 15 }}>{minSoc === 0 ? '없음' : `${minSoc}%`}</T>
       </Row>
-      <Row label="주차 구역" onPress={openZones}>
+      <Row label="주차 구역" onPress={() => setMapOpen(true)}>
         <T mono style={{ fontSize: 15 }}>
           {zoneLabel(zone) ?? '자동 배정'}
         </T>
@@ -270,48 +245,21 @@ export default function Request() {
       </Row>
       {editing ? null : <FeasibilityView f={feas} checking={checking} />}
 
-      {/* iOS 시각 선택 */}
-      <Modal visible={iosPicker} transparent animationType="slide" onRequestClose={() => setIosPicker(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: '#000000B3' }} onPress={() => setIosPicker(false)} />
-        <View style={{ backgroundColor: C.surface, padding: 24, paddingBottom: 40, gap: 12 }}>
-          <DateTimePicker
-            value={finish}
-            mode="datetime"
-            display="spinner"
-            minimumDate={new Date()}
-            minuteInterval={10}
-            themeVariant="dark"
-            onValueChange={(_e, d) => setFinish(d)}
-          />
-          <Button label="완료" onPress={() => setIosPicker(false)} />
-        </View>
-      </Modal>
+      {/* 02.01-A 주차 완료 시각 선택(휠) */}
+      <TimeWheelSheet
+        visible={timeSheet}
+        value={finish}
+        onClose={() => setTimeSheet(false)}
+        onDone={(d) => (setFinish(d), setTimeSheet(false))}
+      />
 
-      {/* 주차 구역 선택(지도 화면은 다음 단계) */}
-      <Modal visible={zones !== null} transparent animationType="slide" onRequestClose={() => setZones(null)}>
-        <Pressable style={{ flex: 1, backgroundColor: '#000000B3' }} onPress={() => setZones(null)} />
-        <View style={{ backgroundColor: C.surface, maxHeight: '60%', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
-          <T style={{ fontSize: 20, padding: 24, paddingBottom: 8 }}>주차 구역</T>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}>
-            {zones?.length === 0 ? <ActivityIndicator color={C.text} style={{ margin: 24 }} /> : null}
-            <Row label="자동 배정" onPress={() => (setZone(null), setZones(null))} chevron={false}>
-              {zone === null ? <T style={{ color: C.active, fontSize: 13 }}>선택됨</T> : null}
-            </Row>
-            {zones?.map((z) => (
-              <Row
-                key={z.id}
-                label={z.name}
-                chevron={false}
-                onPress={z.is_available || z.id === zone ? () => (setZone(z.id), setZones(null)) : undefined}
-              >
-                <T style={{ color: z.id === zone ? C.active : z.is_available ? C.sub : C.error, fontSize: 13 }}>
-                  {z.id === zone ? '선택됨' : z.is_available ? '비어 있음' : '이미 선정됨'}
-                </T>
-              </Row>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
+      {/* 02.02 전체 지도 → 02.03 구역 안 맵 */}
+      <ParkingMap
+        visible={mapOpen}
+        selected={zone}
+        onClose={() => setMapOpen(false)}
+        onPick={(z) => (setZone(z), setMapOpen(false))}
+      />
 
       {/* 02.04 위임 동의 시트 */}
       <Modal visible={sheet} transparent animationType="slide" onRequestClose={() => setSheet(false)}>

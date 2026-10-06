@@ -133,6 +133,34 @@ export type Feasibility = {
   message: string | null;
 };
 
+export type SeatState = 'TAKEN' | 'FREE' | 'MINE';
+export type AreaStateKind = 'OPEN' | 'FULL';
+export type AreaSeat = { seat_no: number; zone_id: string; state: SeatState };
+export type AreaSummary = {
+  area_id: string;
+  name: string;
+  seat_total: number;
+  free_count: number;
+  state: AreaStateKind;
+  has_mine: boolean;
+  seats: AreaSeat[];
+};
+export type AreasOut = { areas: AreaSummary[] };
+export type AreaDetailSeat = AreaSeat & { row: number; col: number };
+export type AreaDetail = {
+  area_id: string;
+  name: string;
+  seat_total: number;
+  free_count: number;
+  state: AreaStateKind;
+  rows: number;
+  cols: number;
+  entrance: { row: number; col: number };
+  seats: AreaDetailSeat[];
+  selected_zone_id: string | null;
+  selected_ok: boolean | null;
+};
+
 export type ParkingZone = { id: string; name: string; capacity: number; available: number; is_available: boolean };
 
 export type WsMessage =
