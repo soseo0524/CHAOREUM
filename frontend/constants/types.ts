@@ -175,11 +175,26 @@ export type ChargeSession = {
   cost_won: number | null;
 };
 
+export type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type NotificationSettings = { charge_done: boolean; parked: boolean; fault: boolean; queue_change: boolean };
+
 export type ParkingZone = { id: string; name: string; capacity: number; available: number; is_available: boolean };
 
 export type WsMessage =
   | { type: 'auth_ok'; role: AppRole }
   | { type: 'vehicle_status'; data: VehicleStatus }
   | { type: 'request_update'; data: ChargeRequest }
-  | { type: 'notification'; data: unknown }
+  | { type: 'notification'; data: NotificationItem }
   | { type: 'error'; code: string; message: string };
+
+/** 위임 동의 문구 버전(02.04 시트·위임 동의 화면) */
+export const CONSENT_VERSION = 'v1';

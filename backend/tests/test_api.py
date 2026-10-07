@@ -321,6 +321,10 @@ def test_notification_settings_push_token_and_read():
         n = m.Notification(user_id=USER, type="PARKED", title="t", body="b", data={}); db.add(n); db.commit(); nid = str(n.id)
     assert client.post(f"/me/notifications/{nid}/read", headers=UH).json()["read_at"] is not None
     assert client.post(f"/me/notifications/{uuid.uuid4()}/read", headers=UH).status_code == 404
+    with SessionLocal() as db:
+        db.add_all([m.Notification(user_id=USER, type="PARKED", title="t", body="b", data={}) for _ in range(2)]); db.commit()
+    assert client.post("/me/notifications/read-all", headers=UH).status_code == 200
+    assert all(n["read_at"] for n in client.get("/me/notifications", headers=UH).json())
 
 
 def test_simulated_run_creates_sessions_notifications_and_push():
@@ -537,3 +541,19 @@ def test_last_session_summary_shows_only_without_active_request():
     assert v["last_session"]["energy_kwh"] > 0 and v["last_session"]["cost_won"] == v["charge"]["cost_won"]
     client.post("/charge-requests", headers=UH, json=body(vid))
     assert hs()["vehicles"][0]["last_session"] is None  # 새 요청이 있으면 숨김
+
+
+def test_auto_assign_on_register(monkeypatch):
+    import dataclasses
+
+    import config
+
+    monkeypatch.setattr(config, "settings", dataclasses.replace(config.settings, auto_assign_ros_ids=("EV-01", "EV-02")))
+    mk = lambda plate: client.post("/vehicles", headers=UH, json=dict(plate_no=plate, battery_kwh=60, max_charge_kw=11)).json()
+    a, b, c = mk("11가1111"), mk("22가2222"), mk("33가3333")
+    assert a["assigned"] and b["assigned"] and not c["assigned"]  # ID 두 개뿐이라 세 번째는 배정 대기
+    ids = {v.plate_no: v.ros_vehicle_id for v in db_rows(m.Vehicle)}
+    assert ids == {"11가1111": "EV-01", "22가2222": "EV-02", "33가3333": None}
+    assert client.delete(f"/vehicles/{a['id']}", headers=UH).status_code == 200  # 삭제하면 ID가 풀린다
+    st = client.get("/me/status", headers=UH).json()["vehicles"]
+    assert [v["assigned"] for v in st] == [True, True] and {v.ros_vehicle_id for v in db_rows(m.Vehicle) if v.deleted_at is None} == {"EV-01", "EV-02"}

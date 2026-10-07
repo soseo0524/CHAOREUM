@@ -87,7 +87,7 @@
 **U-03 차량 등록·관리**
 
 - 차량번호, 모델명, 배터리 용량(kWh), 최대 충전 전력(kW)을 등록·수정·삭제한다.
-- 등록 직후에는 ROS 차량이 배정되지 않아 '배정 대기'로 표시하고, 관리자가 ROS 차량을 배정하면 충전 요청을 할 수 있다.
+- 등록하면 서버가 `AUTO_ASSIGN_ROS_IDS`(기본 EV-01~03) 중 비어 있는 ROS 차량 ID를 자동 배정한다. 남은 ID가 없거나 설정을 비우면 '배정 대기'로 두고 관리자가 배정한다(ID가 비면 다음 `GET /me/status`에서 자동 배정).
 - 차량번호는 중복 등록을 막는다. 충전·이동 중인 차량은 삭제할 수 없다.
 
 **U-04 충전 요청**
@@ -318,7 +318,7 @@
 | 사용자 | GET /me/status | 내 차량 실시간 상태 | user |
 | 사용자 | GET /parking-zones | 주차 구역 목록과 남은 자리(구역 선택 화면) | user |
 | 사용자 | GET /me/sessions, /me/notifications | 충전 이력(충전 시작·종료 SOC, 충전량), 알림함 | user |
-| 사용자 | POST /me/notifications/{id}/read | 알림 읽음 처리 | user |
+| 사용자 | POST /me/notifications/{id}/read, /me/notifications/read-all | 알림 읽음 처리(하나 / 모두) | user |
 | 사용자 | GET/PATCH /me/notification-settings | 알림 4종(충전 완료·주차 완료·이상·대기 순번 변경) 켜기/끄기 | user |
 | 사용자 | POST/DELETE /me/push-tokens | Expo 푸시 토큰 등록·해제(로그아웃 시 해제) | user |
 | 사용자 | POST /consents | 위임 동의 저장 | user |

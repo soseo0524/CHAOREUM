@@ -19,7 +19,7 @@ from .common import (
 from .status import CurrentTask
 
 Reason = Field(min_length=2, max_length=500, description="감사 로그용 사유(필수)")
-ROS_ID_PATTERN = r"^[A-Za-z0-9_]{1,32}$"  # 예: CAR_01
+ROS_ID_PATTERN = r"^[A-Za-z0-9_\-]{1,32}$"  # 예: CAR_01, EV-01(관제 macaron8 차량 ID)
 
 
 class AdminOverview(ApiModel):

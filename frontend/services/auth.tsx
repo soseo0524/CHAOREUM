@@ -12,6 +12,9 @@ type AuthCtx = {
   loading: boolean;
   refreshProfile: () => Promise<Profile | null>;
   signOut: () => Promise<void>;
+  /** 비밀번호 재설정 링크로 들어와 임시 세션이 있는 동안 true. 이때는 홈 대신 새 비밀번호 화면에 머문다 */
+  recovering: boolean;
+  setRecovering: (v: boolean) => void;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -20,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -55,11 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (session) refreshProfile();
+    if (session && !recovering) refreshProfile();
     else setProfile(null);
-  }, [session?.user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session?.user.id, recovering]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <Ctx.Provider value={{ session, profile, loading, refreshProfile, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ session, profile, loading, refreshProfile, signOut, recovering, setRecovering }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

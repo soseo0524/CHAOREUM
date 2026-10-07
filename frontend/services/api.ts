@@ -6,6 +6,8 @@ import type {
   ChargeSession,
   Feasibility,
   MeStatus,
+  NotificationItem,
+  NotificationSettings,
   ParkingZone,
   Profile,
   Vehicle,
@@ -52,6 +54,16 @@ export const api = {
   status: () => request<MeStatus>('GET', '/me/status'),
   sessions: () => request<ChargeSession[]>('GET', '/me/sessions'),
   vehicles: () => request<Vehicle[]>('GET', '/vehicles'),
+  withdraw: () => request('DELETE', '/me', { confirm: true }),
+  notifications: () => request<NotificationItem[]>('GET', '/me/notifications'),
+  readNotification: (id: string) => request<NotificationItem>('POST', `/me/notifications/${id}/read`),
+  readAllNotifications: () => request('POST', '/me/notifications/read-all'),
+  notificationSettings: () => request<NotificationSettings>('GET', '/me/notification-settings'),
+  updateNotificationSettings: (b: Partial<NotificationSettings>) =>
+    request<NotificationSettings>('PATCH', '/me/notification-settings', b),
+  updateVehicle: (id: string, b: { plate_no?: string; model?: string | null; battery_kwh?: number }) =>
+    request<Vehicle>('PATCH', `/vehicles/${id}`, b),
+  deleteVehicle: (id: string) => request('DELETE', `/vehicles/${id}`),
   createVehicle: (b: { plate_no: string; model?: string | null; battery_kwh: number; max_charge_kw: number }) =>
     request<Vehicle>('POST', '/vehicles', b),
   parkingAreas: () => request<AreasOut>('GET', '/parking-zones/areas'),

@@ -10,15 +10,19 @@ import { C } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/services/auth';
 
 function RootStack() {
-  const { session, loading } = useAuth();
+  const { session, loading, recovering } = useAuth();
   if (loading) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!session && !recovering}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={!!session && !recovering}>
         <Stack.Screen name="(user)" />
+      </Stack.Protected>
+      {/* 09.03 재설정 메일의 링크(aiot://reset-password#access_token=...)로 들어오는 화면 */}
+      <Stack.Protected guard={!session || recovering}>
+        <Stack.Screen name="reset-password" />
       </Stack.Protected>
     </Stack>
   );

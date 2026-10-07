@@ -23,6 +23,14 @@ export default function TabsLayout() {
       <Tabs.Screen name="me" options={{ title: '내 정보', tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
       <Tabs.Screen name="history" options={{ href: null }} />
       <Tabs.Screen name="history-detail" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="result" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="notification-settings" options={{ href: null }} />
+      <Tabs.Screen name="vehicles" options={{ href: null }} />
+      <Tabs.Screen name="vehicle-edit" options={{ href: null }} />
+      <Tabs.Screen name="consent" options={{ href: null }} />
+      <Tabs.Screen name="terms" options={{ href: null }} />
     </Tabs>
   );
 }

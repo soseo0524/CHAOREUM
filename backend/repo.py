@@ -56,6 +56,20 @@ def active_request(db: Session, vehicle_id: uuid.UUID) -> m.ChargeRequest | None
     return db.scalars(select(m.ChargeRequest).where(m.ChargeRequest.vehicle_id == vehicle_id, m.ChargeRequest.status.in_(ACTIVE_REQUEST_STATUSES))).first()
 
 
+def auto_assign(db: Session, v: m.Vehicle) -> bool:
+    """settings.auto_assign_ros_ids 중 다른 차량이 쓰지 않는 첫 ID를 붙인다. 남은 ID가 없으면 배정 대기로 둔다. 호출자가 commit."""
+    from config import settings
+
+    if v.ros_vehicle_id is not None or not settings.auto_assign_ros_ids:
+        return False
+    used = set(db.scalars(select(m.Vehicle.ros_vehicle_id).where(m.Vehicle.deleted_at.is_(None), m.Vehicle.ros_vehicle_id.is_not(None))))
+    free = next((x for x in settings.auto_assign_ros_ids if x not in used), None)
+    if free is None:
+        return False
+    v.ros_vehicle_id, v.updated_at = free, now()
+    return True
+
+
 def log_audit(db: Session, admin: uuid.UUID, action: str, entity_type: str, entity_id: Any, reason: str, before=None, after=None) -> int:
     row = m.AuditLog(admin_id=admin, action=action, entity_type=entity_type, entity_id=str(entity_id), reason=reason, before_data=before, after_data=after)
     db.add(row)

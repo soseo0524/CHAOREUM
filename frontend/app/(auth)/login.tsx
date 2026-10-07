@@ -55,6 +55,9 @@ export default function Login() {
               <T style={{ fontSize: 13 }}>회원가입</T>
             </Link>
           </View>
+          <Link href="/forgot" style={{ alignSelf: 'center' }}>
+            <T style={{ color: C.sub, fontSize: 12 }}>비밀번호를 잊었나요?</T>
+          </Link>
           <T style={{ color: C.muted, fontSize: 11, textAlign: 'center' }}>관리자는 웹사이트에서 이용해 주세요.</T>
         </View>
       </Screen>

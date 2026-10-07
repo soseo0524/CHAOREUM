@@ -42,7 +42,18 @@ def create_vehicle(body: VehicleCreate, u: CurrentUser = Depends(require_user), 
     except IntegrityError:  # 동시 등록 경쟁: DB 유니크 인덱스가 최종 방어선
         db.rollback()
         raise ApiError(409, ErrorCode.PLATE_DUPLICATED, "이미 등록된 차량번호입니다.")
+    try_auto_assign(db, v)
     return _out(v)
+
+
+def try_auto_assign(db: Session, v: m.Vehicle) -> None:
+    """등록 직후 관제 차량 ID 자동 배정. 동시에 같은 ID를 잡으면(유니크 인덱스) 배정 대기로 남긴다."""
+    if repo.auto_assign(db, v):
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            db.refresh(v)
 
 
 @router.get("/{vehicle_id}", response_model=VehicleOut)

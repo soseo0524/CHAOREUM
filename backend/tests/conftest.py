@@ -3,5 +3,5 @@ config·database가 .env를 읽기 전에 환경변수를 고정한다(load_dote
 import os
 
 for k, v in {"AUTH_MODE": "dev", "ROS_MODE": "mock", "PUSH_MODE": "mock", "DATABASE_URL": "", "SUPABASE_URL": "",
-             "SUPABASE_SERVICE_ROLE_KEY": "", "SUPABASE_JWT_SECRET": "", "GATEWAY_TOKEN": ""}.items():
+             "SUPABASE_SERVICE_ROLE_KEY": "", "SUPABASE_JWT_SECRET": "", "GATEWAY_TOKEN": "", "AUTO_ASSIGN_ROS_IDS": ""}.items():
     os.environ[k] = v

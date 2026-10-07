@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 import models as m
@@ -12,6 +12,7 @@ from errors import ApiError
 from schemas.auth import ConsentCreate, ConsentOut, ProfileOut, ProfileUpdate, WithdrawRequest
 from schemas.common import ErrorCode, OkResponse
 from schemas.status import ChargeSessionOut, MeStatusResponse, NotificationOut, NotificationSettings, NotificationSettingsPatch, PushTokenCreate
+from routers.vehicles import try_auto_assign
 from services import cost_of, vehicle_status
 
 router = APIRouter(tags=["me"])
@@ -47,7 +48,11 @@ def post_consent(body: ConsentCreate, u: CurrentUser = Depends(require_user), db
 
 @router.get("/me/status", response_model=MeStatusResponse)
 def me_status(u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
-    vs = [vehicle_status(db, v) for v in repo.live_vehicles(db, u.id)]
+    vehicles = repo.live_vehicles(db, u.id)
+    for v in vehicles:  # 등록 때 자리가 없어 배정 대기였던 차량: ID가 비면 지금 배정
+        if v.ros_vehicle_id is None:
+            try_auto_assign(db, v)
+    vs = [vehicle_status(db, v) for v in vehicles]
     return MeStatusResponse(server_time=repo.now(), vehicles=vs, empty_reason=None if vs else "NO_VEHICLE")
 
 
@@ -139,6 +144,14 @@ def register_push_token(body: PushTokenCreate, u: CurrentUser = Depends(require_
 def delete_push_token(body: PushTokenCreate, u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
     """로그아웃 시 이 기기 토큰 삭제."""
     db.execute(delete(m.PushToken).where(m.PushToken.expo_push_token == body.token, m.PushToken.user_id == u.id))
+    db.commit()
+    return OkResponse()
+
+
+@router.post("/me/notifications/read-all", response_model=OkResponse)
+def read_all_notifications(u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
+    """알림함 '모두 읽음'."""
+    db.execute(update(m.Notification).where(m.Notification.user_id == u.id, m.Notification.read_at.is_(None)).values(read_at=repo.now()))
     db.commit()
     return OkResponse()
 

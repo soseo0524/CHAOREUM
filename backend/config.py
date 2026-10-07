@@ -24,6 +24,8 @@ class Settings:
     move_to_charger_s: int = 60  # 추정용 상수. 스케줄러 연동 시 교체
     move_to_parking_s: int = 60
     cors_origins: tuple = field(default_factory=lambda: tuple(o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()))  # 관리자 웹 출처
+    # 차량 등록 시 비어 있는 관제 차량 ID를 자동 배정(관리자 확인 생략). 비우면 관리자가 수동 배정
+    auto_assign_ros_ids: tuple = field(default_factory=lambda: tuple(x.strip() for x in os.getenv("AUTO_ASSIGN_ROS_IDS", "EV-01,EV-02,EV-03").split(",") if x.strip()))
     chargers: tuple = ("CHARGER_01", "CHARGER_02")  # DB 연결 전 임시 시드
 
 

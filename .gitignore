@@ -15,3 +15,6 @@ aiot_ws/
 .venv/
 app/node_modules/
 app/.expo/
+
+# 관제 담당자 코드(참고용 복사본, 원본은 그쪽 저장소)
+macaron8_AIOT-main/

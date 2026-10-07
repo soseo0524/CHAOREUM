@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 import {
   Banner,
   CarHero,
+  contactCenter,
   MetricRow,
   Notice,
   SocBar,
@@ -16,6 +17,8 @@ import {
   type MetricItem,
   type Step,
 } from '@/components/home';
+import { Dialog } from '@/components/dialog';
+import { ParkingMap } from '@/components/parking-map';
 import { Button, EmptyHero, Screen, T, Title } from '@/components/ui';
 import { chargerNo, clock, clockText, monthDay, won, zoneLabel } from '@/constants/format';
 import { C } from '@/constants/theme';
@@ -65,6 +68,8 @@ function socText(v: VehicleStatus) {
 export default function Home() {
   const { status, error, connected, lastUpdated, refresh, reconnect } = useStatus();
   const [busy, setBusy] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   if (!status) {
     return (
@@ -119,26 +124,20 @@ export default function Home() {
     );
   }
 
-  async function cancel() {
+  const cancel = () => setCancelOpen(true);
+  async function confirmCancel() {
     if (!req) return;
-    Alert.alert('요청을 취소할까요?', '진행 중인 이동·충전을 멈추고 차량을 안전한 지점으로 옮겨요.', [
-      { text: '닫기', style: 'cancel' },
-      {
-        text: '요청 취소',
-        style: 'destructive',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            await api.updateRequest(req.id, { cancel: true });
-            await refresh();
-          } catch (e: any) {
-            Alert.alert('취소 실패', e.message);
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
+    setBusy(true);
+    try {
+      await api.updateRequest(req.id, { cancel: true });
+      setCancelOpen(false);
+      await refresh();
+    } catch (e: any) {
+      setCancelOpen(false);
+      Alert.alert('취소 실패', e.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const goRequest = () => router.navigate('/request');
@@ -242,7 +241,7 @@ export default function Home() {
       body = <Steps steps={progressSteps(v)} />;
       if (hs === HomeState.MOVING_TO_CHARGER || hs === HomeState.CHARGING)
         footer = <Button kind="outline" label="충전 요청 취소" onPress={cancel} loading={busy} />;
-      if (hs === HomeState.PARKED) footer = <Button label="이력 보기" onPress={() => router.navigate('/me')} />;
+      if (hs === HomeState.PARKED) footer = <Button label="결과 보기" onPress={() => router.push('/result')} />;
       break;
     case HomeState.VEHICLE_OFFLINE:
       title = '차량 신호를 기다려요';
@@ -318,7 +317,7 @@ export default function Home() {
     <Screen tabs footer={footer}>
       <TopBar />
       {banner}
-      <CarHero height={banner ? 120 : 160} />
+      <CarHero height={banner ? 120 : 160} onMap={() => setMapOpen(true)} />
       <StatusBlock plate={v.plate_no} title={title} color={titleColor} />
       {showMetrics ? (
         <View style={{ gap: 12 }}>
@@ -335,6 +334,30 @@ export default function Home() {
         </View>
       ) : null}
       {body}
+      <Dialog
+        visible={cancelOpen}
+        title="요청을 취소할까요?"
+        body={
+          hs === HomeState.QUEUED
+            ? '취소하면 대기 순서가 사라져요. 다시 충전하려면 새로 요청해야 해요.'
+            : '진행 중인 이동·충전을 멈추고 차량을 안전한 지점으로 옮겨요.'
+        }
+        keepLabel="계속 유지"
+        confirmLabel="요청 취소"
+        loading={busy}
+        onKeep={() => setCancelOpen(false)}
+        onConfirm={confirmCancel}
+      />
+      {/* 전체 구역 지도. 요청 전이면 고른 자리로 충전 요청 화면을 연다 */}
+      <ParkingMap
+        visible={mapOpen}
+        selected={req?.parking_zone_id ?? null}
+        onClose={() => setMapOpen(false)}
+        onPick={(z) => {
+          setMapOpen(false);
+          if (!req && z) router.navigate({ pathname: '/request', params: { zone: z } });
+        }}
+      />
     </Screen>
   );
 }
@@ -356,8 +379,4 @@ function Onboarding({ current }: { current: number }) {
       })}
     </View>
   );
-}
-
-function contactCenter() {
-  Alert.alert('관제 문의', '관제실 연락처는 아직 준비 중이에요.');
 }

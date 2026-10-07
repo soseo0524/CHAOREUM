@@ -1,6 +1,6 @@
 // 02.01 충전 요청 / 02-A.04 접수된 요청 수정 / 02.04 위임 동의 시트
 import Slider from '@react-native-community/slider';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { BatteryCharging, FileText, KeyRound, MapPin } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, View } from 'react-native';
@@ -10,12 +10,11 @@ import { TimeWheelSheet } from '@/components/time-wheel-sheet';
 import { Button, Checkbox, Row, Screen, T, Title } from '@/components/ui';
 import { clockText, dayClock, zoneLabel } from '@/constants/format';
 import { C } from '@/constants/theme';
-import { HomeState, type Feasibility } from '@/constants/types';
+import { CONSENT_VERSION, HomeState, type Feasibility } from '@/constants/types';
 import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 import { useAuth } from '@/services/auth';
 
-const CONSENT_VERSION = 'v1';
 const MIN_SOC_OPTIONS = [0, 20, 40, 60];
 const EDITABLE = new Set<string>([HomeState.QUEUED]);
 
@@ -36,6 +35,11 @@ export default function Request() {
   const [target, setTarget] = useState(80);
   const [minSoc, setMinSoc] = useState(0);
   const [zone, setZone] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ zone?: string }>();
+  // 홈의 '전체 구역 선택' 지도에서 고른 자리
+  useEffect(() => {
+    if (params.zone) setZone(params.zone);
+  }, [params.zone]);
   const [agree, setAgree] = useState(false);
   const [feas, setFeas] = useState<Feasibility | null>(null);
   const [checking, setChecking] = useState(false);

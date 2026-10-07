@@ -78,7 +78,7 @@ export function Title({ children, eyebrow, size = 34 }: { children: ReactNode; e
   );
 }
 
-type BtnKind = 'primary' | 'outline' | 'danger' | 'ghost';
+type BtnKind = 'primary' | 'outline' | 'danger' | 'destructive' | 'ghost';
 export function Button({
   label,
   onPress,
@@ -98,6 +98,7 @@ export function Button({
     primary: { bg: C.primary, border: 'transparent', color: '#000000' },
     outline: { bg: 'transparent', border: C.outline, color: C.text },
     danger: { bg: 'transparent', border: '#ff373766', color: C.error },
+    destructive: { bg: C.error, border: C.error, color: '#ffffff' },
     ghost: { bg: 'transparent', border: 'transparent', color: C.sub },
   }[kind];
   return (

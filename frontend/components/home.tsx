@@ -1,20 +1,43 @@
 // 홈 화면(03.xx) 조각: 차량 사진, 수치, SOC 막대, 진행 단계, 배너
 import { Bell, Check, Map as MapIcon, TriangleAlert, WifiOff } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { C } from '@/constants/theme';
+import { api } from '@/services/api';
 import { T, Wordmark } from './ui';
 
+/** 로고 + 알림함(08.01) 버튼. 안 읽은 알림이 있으면 점을 찍는다 */
 export function TopBar() {
+  const [unread, setUnread] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      api
+        .notifications()
+        .then((rows) => setUnread(rows.some((n) => !n.read_at)))
+        .catch(() => {});
+    }, []),
+  );
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Wordmark />
-      <Bell size={22} color={C.text} />
+      <Pressable onPress={() => router.push('/notifications')} hitSlop={12}>
+        <Bell size={22} color={C.text} />
+        {unread ? <View style={s.unread} /> : null}
+      </Pressable>
     </View>
   );
 }
 
-export function CarHero({ height = 160 }: { height?: number }) {
+/** 관제 문의: EXPO_PUBLIC_SUPPORT_PHONE이 있으면 전화를 건다 */
+export function contactCenter() {
+  const tel = process.env.EXPO_PUBLIC_SUPPORT_PHONE;
+  if (tel) Linking.openURL(`tel:${tel}`).catch(() => {});
+  else Alert.alert('관제 문의', '관제실 연락처가 아직 등록되지 않았어요. 관리자에게 문의해 주세요.');
+}
+
+export function CarHero({ height = 160, onMap }: { height?: number; onMap?: () => void }) {
   return (
     <View style={[s.hero, { height }]}>
       <Image
@@ -22,10 +45,10 @@ export function CarHero({ height = 160 }: { height?: number }) {
         style={{ width: height === 160 ? 260 : 200, height: height - 10 }}
         resizeMode="contain"
       />
-      <View style={s.chip}>
+      <Pressable style={s.chip} onPress={onMap} disabled={!onMap} hitSlop={6}>
         <MapIcon size={14} color={C.text} />
         <T style={{ fontSize: 12 }}>전체 구역 선택</T>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -150,6 +173,7 @@ export function Notice({ eyebrow, body, sub, alert }: { eyebrow: string; body: s
 }
 
 const s = StyleSheet.create({
+  unread: { position: 'absolute', top: 0, right: 0, width: 7, height: 7, borderRadius: 4, backgroundColor: C.primaryText },
   hero: { backgroundColor: C.hero, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   chip: {
     position: 'absolute',
