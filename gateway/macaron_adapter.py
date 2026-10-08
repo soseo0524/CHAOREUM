@@ -180,7 +180,7 @@ class Translator:
             }
             loc = v.get("location_id")
             if loc and ID_RE.match(str(loc)):
-                item["zone_id"] = str(loc)  # 관제 PARKING_01~ / CHARGER_01 은 우리 id와 같은 형식
+                item["zone_id"] = str(loc)  # 관제 PARKING_nn(nn=슬롯 번호 0~65) / CHARGER_01 은 우리 id와 같은 형식
             if vid in charger_of:
                 item["charger_id"] = charger_of[vid]
             if vid in current:

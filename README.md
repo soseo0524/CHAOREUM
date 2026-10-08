@@ -82,7 +82,7 @@ cd backend && alembic upgrade head
 | 충전 요청·취소·수정 | `POST /charge-requests`, `PATCH /charge-requests/{id}` |
 | 주차 구역 목록 | `GET /parking-zones` |
 | 전체 지도: 구역(A·B·C)별 빈자리 수 | `GET /parking-zones/areas` |
-| 구역 안 맵: 자리별 상태·칸 위치 | `GET /parking-zones/areas/{A\|B\|C}?selected=PARKING_03` |
+| 구역 안 맵: 자리별 상태·칸 위치 | `GET /parking-zones/areas/{A\|B\|C}?selected=PARKING_33` |
 | 충전 이력 | `GET /me/sessions` |
 | 알림·푸시 | `GET /me/notifications`, `/me/notification-settings`, `/me/push-tokens` |
 | 관제 연결 | `/ws/gateway` (ROS 게이트웨이) |

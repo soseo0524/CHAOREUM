@@ -155,7 +155,7 @@ export type AreaDetail = {
   state: AreaStateKind;
   rows: number;
   cols: number;
-  entrance: { row: number; col: number };
+  entrance: { row: number; col: number } | null; // 입구 칸 없음(항상 null)
   seats: AreaDetailSeat[];
   selected_zone_id: string | null;
   selected_ok: boolean | null;

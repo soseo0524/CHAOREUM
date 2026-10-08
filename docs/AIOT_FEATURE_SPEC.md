@@ -169,9 +169,9 @@
 
 | 화면 | API | 내용 |
 |---|---|---|
-| 02.02 전체 지도 | `GET /parking-zones/areas` | 구역 A(1~7번)·B(8~14번)·C(15~21번)별 `free_count`(빈자리 수), `state`(OPEN/FULL), `has_mine`, 구역 카드의 미니 현황용 `seats[]`. 확대·축소·이동은 앱이 처리 |
-| 02.03 구역 안 맵 | `GET /parking-zones/areas/{area_id}` | 자리별 `state`(TAKEN=차 있음, FREE=빈자리, MINE=내 자리·고르는 중), `row`/`col`(윗줄 4칸, 아랫줄 3칸+입구 칸), `entrance` |
-| 02-A.02 이미 선정된 자리 | 같은 API + `?selected=PARKING_03` | 그 자리가 이미 선정됐으면 `selected_ok=false`(그 자리는 TAKEN). 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
+| 02.02 전체 지도 | `GET /parking-zones/areas` | 구역 A(위쪽 한 줄 17칸)·B(가운데 두 줄 13+13칸)·C(아래쪽 한 줄 14칸)별 `free_count`(빈자리 수), `state`(OPEN/FULL), `has_mine`, 구역 카드의 미니 현황용 `seats[]`. 확대·축소·이동은 앱이 처리 |
+| 02.03 구역 안 맵 | `GET /parking-zones/areas/{area_id}` | 자리별 `state`(TAKEN=차 있음, FREE=빈자리, MINE=내 자리·고르는 중), `row`/`col`(실제 배치대로 줄마다 왼쪽→오른쪽. A·C는 한 줄, B는 두 줄), `rows`/`cols`. 입구 칸은 없다(`entrance`는 항상 null) |
+| 02-A.02 이미 선정된 자리 | 같은 API + `?selected=PARKING_33` | 그 자리가 이미 선정됐으면 `selected_ok=false`(그 자리는 TAKEN). 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
 | 02-A.03 가득 찬 구역 | 위 두 API의 `state=FULL` | 앱이 "가득 찬 구역이에요"로 버튼을 막는다 |
 
 - 자리 번호 n = 주차 구역 `PARKING_nn`(capacity 1). 고른 자리의 `zone_id`를 충전 요청의 `parking_zone_id`로 보낸다.
@@ -447,7 +447,7 @@ MVP에서는 지도(A-03), 통계(A-11), 사용자 관리(A-10), Qwen 설정 UI�
 - [x] 차량 id 매핑: `vehicles.id`는 UUID, ROS 식별자는 `ros_vehicle_id`(nullable, 삭제되지 않은 차량끼리 유일). 사용자는 차량 정보만 등록하고 관리자가 CAR_01~04를 배정
 - [x] 회원 탈퇴: `owner_id` nullable + `on delete set null`, 이력·감사 로그 보존, 개인정보만 삭제(U-09)
 - [x] 충전 중에도 취소 가능(IN_PROGRESS에서 취소 허용). 차량을 어디로 옮길지는 관제와 합의 필요
-- [x] 지도 좌석 1개 = 차 1대. 자리 n번 = 주차 구역 `PARKING_nn`(1~21), 구역 `capacity` = 1
+- [x] 지도 좌석 1개 = 차 1대. 자리 번호는 실제 주차장 슬롯 번호 0~65(12·14·27·30·31·34·35·39·44번은 없어 57칸). 자리 n번 = 주차 구역 `PARKING_nn`(0→`PARKING_00`, 65→`PARKING_65`), 구역 `capacity` = 1. 구역은 A 17칸·B 26칸·C 14칸이고 `nn`이 곧 중앙관제의 슬롯 번호다
 - [ ] 위임 동의 문구와 탈퇴 시 개인정보(차량번호 포함) 익명화·보관기간 법률 검토
 - [ ] 도메인 구성: 도메인 개수와 노드·차량별 `ROS_DOMAIN_ID`, Domain Bridge로 넘길 토픽 목록 확정(5.4, `docs/AIOT_DOMAIN_CONFIG.md`)
 

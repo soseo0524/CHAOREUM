@@ -247,7 +247,10 @@ def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbo
     if st.state in _NOTICE:
         ntype, pref, title, body = _NOTICE[st.state]
         if st.state == VehicleState.PARKED and st.zone_id:
-            body = f"{st.zone_id[-2:].lstrip('0')}번 자리에 도착했어요."
+            from schemas.parking_map import seat_no_of
+            seat_no = seat_no_of(st.zone_id)  # PARKING_00 → 0번(앞의 0을 지우면 안 된다)
+            if seat_no is not None:
+                body = f"{seat_no}번 자리에 도착했어요."
         notice(db, v.owner_id, ntype, pref, title, body, {"vehicle_id": str(v.id), "request_id": str(ar.id) if ar else None}, outbox)
 
 
@@ -374,17 +377,16 @@ def _seat_states(db: Session, user_id: UUID, selected: str | None) -> tuple[dict
 
 
 def _seat_numbers(area_id: str) -> list[int]:
-    from schemas.parking_map import AREAS
-    lo, hi = AREAS[area_id]
-    return list(range(lo, hi + 1))
+    from schemas.parking_map import area_seat_numbers
+    return area_seat_numbers(area_id)
 
 
 def parking_areas(db: Session, user_id: UUID):
-    from schemas.parking_map import AREAS, AreasOut, AreaState, AreaSummary, Seat, SeatState
+    from schemas.parking_map import AREA_ROWS, AreasOut, AreaState, AreaSummary, Seat, SeatState, seat_zone_id
     states, _ = _seat_states(db, user_id, None)
     out = []
-    for aid in AREAS:
-        seats = [Seat(seat_no=n, zone_id=f"PARKING_{n:02d}", state=states.get(f"PARKING_{n:02d}", SeatState.TAKEN)) for n in _seat_numbers(aid)]
+    for aid in AREA_ROWS:
+        seats = [Seat(seat_no=n, zone_id=seat_zone_id(n), state=states.get(seat_zone_id(n), SeatState.TAKEN)) for n in _seat_numbers(aid)]
         free = sum(1 for x in seats if x.state != SeatState.TAKEN)
         out.append(AreaSummary(area_id=aid, name=f"{aid}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
                                has_mine=any(x.state == SeatState.MINE for x in seats), seats=seats))
@@ -392,20 +394,20 @@ def parking_areas(db: Session, user_id: UUID):
 
 
 def parking_area_detail(db: Session, user_id: UUID, area_id: str, selected: str | None):
-    from schemas.parking_map import AREAS, DETAIL_COLS, AreaDetailOut, AreaState, Cell, DetailSeat, SeatState
+    from schemas.parking_map import AREA_ROWS, AreaDetailOut, AreaState, DetailSeat, SeatState, seat_zone_id
     area_id = area_id.upper()
-    if area_id not in AREAS:
+    if area_id not in AREA_ROWS:
         return None
     states, avail = _seat_states(db, user_id, selected)
     seats = []
-    for i, n in enumerate(_seat_numbers(area_id)):
-        zid = f"PARKING_{n:02d}"
-        seats.append(DetailSeat(seat_no=n, zone_id=zid, state=states.get(zid, SeatState.TAKEN), row=i // DETAIL_COLS, col=i % DETAIL_COLS))
+    for row, numbers in enumerate(AREA_ROWS[area_id]):
+        for col, n in enumerate(numbers):
+            zid = seat_zone_id(n)
+            seats.append(DetailSeat(seat_no=n, zone_id=zid, state=states.get(zid, SeatState.TAKEN), row=row, col=col))
     free = sum(1 for x in seats if x.state != SeatState.TAKEN)
-    rows = max(x.row for x in seats) + 1
     sel_ok = None
     if selected:
         sel_ok = states.get(selected) in (SeatState.MINE, SeatState.FREE)
     return AreaDetailOut(area_id=area_id, name=f"{area_id}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
-                         rows=rows, cols=DETAIL_COLS, entrance=Cell(row=rows - 1, col=len([x for x in seats if x.row == rows - 1])),
+                         rows=len(AREA_ROWS[area_id]), cols=max(len(r) for r in AREA_ROWS[area_id]), entrance=None,
                          seats=seats, selected_zone_id=selected, selected_ok=sel_ok)

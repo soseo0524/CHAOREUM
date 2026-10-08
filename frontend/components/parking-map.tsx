@@ -1,4 +1,4 @@
-// 02.02 전체 지도(손가락으로 확대·이동해서 구역 고르기) → 02.03 구역 안 맵(자리 고르기)
+// 02.02 전체 지도(손가락으로 확대·이동해서 구역 고르기) → 02.03 구역 안 맵(확대·이동하면서 자리 고르기)
 // 고른 자리의 zone_id(PARKING_nn)를 onPick으로 돌려준다. 자동 배정은 null.
 import { ChevronLeft, LogIn, Minus, Plus, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,14 +12,36 @@ import { Button, T } from './ui';
 
 const CAR = require('@/assets/car-top.png');
 const CAR_RATIO = 377 / 869; // 가로/세로
-const WORLD = { w: 340, h: 470 };
-// 전체 지도 안에서 구역 위치(앱 안 지도 배치. 실제 주차장 좌표가 정해지면 여기만 고친다)
+
+// ---- 전체 지도(02.02): 실제 주차장 구조. A(윗줄 17칸) / B(가운데 두 줄 13+13) / C(아랫줄 14칸)
+// 자리 박스는 구역 안 맵과 같은 비율(1 : 1.78), 구역 사이에는 차가 지나가는 길
+const WORLD = { w: 716, h: 660 };
+const OV = { seatW: 30, seatH: 53, radius: 5, scale: 0.36, left: 20, row1: 68, row2: 137 };
 const LAYOUT: Record<string, { x: number; y: number; w: number; h: number }> = {
-  A: { x: 16, y: 24, w: 150, h: 170 },
-  B: { x: 174, y: 24, w: 150, h: 170 },
-  C: { x: 16, y: 250, w: 308, h: 150 },
+  A: { x: 16, y: 24, w: 684, h: 137 },
+  B: { x: 16, y: 209, w: 684, h: 206 },
+  C: { x: 16, y: 463, w: 684, h: 137 },
 };
-const SEAT_COLOR = { FREE: '#e5e5e5', TAKEN: '#4a4a4a', MINE: C.active } as const;
+const LANES = [161, 415]; // 길(높이 48)이 시작하는 y
+// 줄별 자리 번호(왼쪽→오른쪽)와 사진 속 가로 위치(3칸씩 묶인 간격을 그대로 살리는 데 쓴다)
+const OV_ROWS: Record<string, [number, number][][]> = {
+  A: [[[61, 174], [45, 275], [43, 386], [42, 500], [40, 595], [41, 689], [38, 827], [37, 921], [36, 1014], [58, 1148], [33, 1243], [32, 1338], [59, 1462], [29, 1556], [28, 1651], [62, 1784], [26, 1887]]],
+  B: [
+    [[0, 498], [1, 594], [2, 689], [3, 825], [4, 919], [5, 1013], [6, 1149], [7, 1237], [8, 1324], [9, 1461], [10, 1552], [11, 1644], [60, 1782]],
+    [[25, 485], [24, 579], [23, 672], [22, 810], [21, 905], [20, 999], [19, 1137], [18, 1232], [17, 1327], [16, 1459], [15, 1555], [13, 1650], [63, 1783]],
+  ],
+  C: [[[57, 571], [56, 665], [46, 799], [47, 893], [48, 987], [49, 1124], [50, 1217], [51, 1311], [52, 1450], [53, 1542], [54, 1635], [65, 1768], [55, 1864], [64, 1960]]],
+};
+const SEAT_COLOR = { FREE: '#d1d1d6', TAKEN: '#3a3a3c', MINE: C.active } as const;
+
+// ---- 구역 안 맵(02.03): 자리 박스는 디자인 그대로 74×132, 모서리 12
+const SW = 74;
+const SH = 132;
+const SR = 12;
+const PITCH = 82;
+const PAD = 16;
+const ROW_GAP = 14; // B구역 두 줄 사이(가운데 벽)
+
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 type Tf = { x: number; y: number; s: number };
@@ -78,12 +100,23 @@ export function ParkingMap({
                 </Pressable>
               </View>
               <T style={{ fontSize: 28, letterSpacing: -1 }}>구역을 골라 주세요</T>
-              <T style={{ color: C.sub, fontSize: 13 }}>손가락으로 확대하고 움직여서 구역을 눌러 보세요.</T>
             </View>
 
             <View style={{ flex: 1, marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: C.hero }}>
               {areas ? (
-                <ZoomMap areas={areas.areas} pending={pending} onPick={setPending} />
+                <PanZoom worldW={WORLD.w} worldH={WORLD.h} focus={{ x: 175, y: 250, s: 1 }} focusKey="overview" minS={0.4} maxS={2}>
+                  {/* 길: 구역 사이(차가 지나가는 공간) */}
+                  {LANES.map((y) => (
+                    <View key={y} style={{ position: 'absolute', left: 16, width: 684, top: y, height: 48, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.line, borderStyle: 'dashed' }} />
+                  ))}
+                  <View style={{ position: 'absolute', left: 0, width: WORLD.w, top: 616, alignItems: 'center', gap: 4 }}>
+                    <LogIn size={18} color={C.sub} style={{ transform: [{ rotate: '90deg' }] }} />
+                    <T style={{ color: C.sub, fontSize: 11, letterSpacing: 1 }}>입구</T>
+                  </View>
+                  {areas.areas.map((a) => (
+                    <AreaBlock key={a.area_id} a={a} on={pending === a.area_id} onPress={() => setPending(a.area_id)} />
+                  ))}
+                </PanZoom>
               ) : error ? (
                 <T style={{ color: C.error, fontSize: 13, padding: 24 }}>{error}</T>
               ) : (
@@ -116,34 +149,62 @@ export function ParkingMap({
   );
 }
 
-/** 한 손가락 이동, 두 손가락 확대·축소(지도 앱처럼). 구역 블록을 누르면 선택. */
-function ZoomMap({
-  areas,
-  pending,
-  onPick,
+/**
+ * 지도처럼 쓰는 판: 한 손가락 이동, 두 손가락 확대·축소, +/- 버튼.
+ * focus가 있으면 그 지점(월드 좌표)을 가운데에 두고 focus.s 배율로 시작하고, 없으면 판 전체가 보이게 맞춘다.
+ * focusKey가 바뀔 때마다 처음 위치로 다시 맞춘다.
+ */
+function PanZoom({
+  worldW,
+  worldH,
+  focus,
+  focusKey,
+  minS = 0.3,
+  maxS = 3,
+  children,
 }: {
-  areas: AreaSummary[];
-  pending: string | null;
-  onPick: (id: string) => void;
+  worldW: number;
+  worldH: number;
+  focus?: { x: number; y: number; s: number };
+  focusKey: string;
+  minS?: number;
+  maxS?: number;
+  children: React.ReactNode;
 }) {
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [tf, setTf] = useState<Tf>({ x: 0, y: 0, s: 1 });
   const tfRef = useRef(tf);
   tfRef.current = tf;
-  const fit = useRef<Tf>({ x: 0, y: 0, s: 1 });
+  const boxRef = useRef(box);
+  boxRef.current = box;
+  const limits = useRef({ minS, maxS });
+  limits.current = { minS, maxS };
 
   useEffect(() => {
     if (!box.w) return;
-    const s = Math.min(box.w / WORLD.w, box.h / WORLD.h);
-    fit.current = { s, x: (box.w - WORLD.w * s) / 2, y: (box.h - WORLD.h * s) / 2 };
-    setTf(fit.current);
-  }, [box.w, box.h]);
+    if (focus) {
+      const s = clamp(focus.s, minS, maxS);
+      setTf({ s, x: box.w / 2 - focus.x * s, y: box.h / 2 - focus.y * s });
+    } else {
+      const s = Math.min(box.w / worldW, box.h / worldH);
+      setTf({ s, x: (box.w - worldW * s) / 2, y: (box.h - worldH * s) / 2 });
+    }
+  }, [box.w, box.h, focusKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 화면 가운데를 기준으로 배율 바꾸기 */
+  const zoomAround = (t: Tf, s2: number): Tf => {
+    const b = boxRef.current;
+    const cx = b.w / 2;
+    const cy = b.h / 2;
+    const k = s2 / t.s;
+    return { s: s2, x: cx - (cx - t.x) * k, y: cy - (cy - t.y) * k };
+  };
 
   const pan = useMemo(() => {
     let base: Tf = { x: 0, y: 0, s: 1 };
     let origin = { dx: 0, dy: 0 };
     let count = 0;
-    let pinch: { d: number; s: number } | null = null;
+    let pinch: { d: number; t: Tf } | null = null;
     return PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, g) =>
@@ -165,9 +226,9 @@ function ZoomMap({
         }
         if (t.length >= 2) {
           const d = Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
-          if (!pinch) pinch = { d, s: tfRef.current.s };
-          const s = clamp((pinch.s * d) / pinch.d, 0.6, 3);
-          setTf({ ...tfRef.current, s });
+          if (!pinch) pinch = { d, t: tfRef.current };
+          const { minS: lo, maxS: hi } = limits.current;
+          setTf(zoomAround(pinch.t, clamp((pinch.t.s * d) / pinch.d, lo, hi)));
         } else {
           setTf({ s: tfRef.current.s, x: base.x + g.dx - origin.dx, y: base.y + g.dy - origin.dy });
         }
@@ -175,7 +236,7 @@ function ZoomMap({
     });
   }, []);
 
-  const zoom = (f: number) => setTf((t) => ({ ...t, s: clamp(t.s * f, 0.6, 3) }));
+  const zoom = (f: number) => setTf((t) => zoomAround(t, clamp(t.s * f, limits.current.minS, limits.current.maxS)));
 
   return (
     <View style={{ flex: 1 }} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })} {...pan.panHandlers}>
@@ -184,20 +245,12 @@ function ZoomMap({
           position: 'absolute',
           left: 0,
           top: 0,
-          width: WORLD.w,
-          height: WORLD.h,
-          transform: [{ translateX: tf.x }, { translateY: tf.y }, { translateX: -(WORLD.w / 2) * (1 - tf.s) }, { translateY: -(WORLD.h / 2) * (1 - tf.s) }, { scale: tf.s }],
+          width: worldW,
+          height: worldH,
+          transform: [{ translateX: tf.x }, { translateY: tf.y }, { translateX: -(worldW / 2) * (1 - tf.s) }, { translateY: -(worldH / 2) * (1 - tf.s) }, { scale: tf.s }],
         }}
       >
-        {/* 통로 */}
-        <View style={{ position: 'absolute', left: 16, right: 16, top: 206, height: 32, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.line, borderStyle: 'dashed' }} />
-        <View style={{ position: 'absolute', left: 0, right: 0, top: 424, alignItems: 'center', gap: 4 }}>
-          <LogIn size={18} color={C.sub} style={{ transform: [{ rotate: '90deg' }] }} />
-          <T style={{ color: C.sub, fontSize: 11, letterSpacing: 1 }}>입구</T>
-        </View>
-        {areas.map((a) => (
-          <AreaBlock key={a.area_id} a={a} on={pending === a.area_id} onPress={() => onPick(a.area_id)} />
-        ))}
+        {children}
       </View>
 
       <View style={{ position: 'absolute', right: 12, bottom: 12, gap: 8 }}>
@@ -224,9 +277,11 @@ function ZoomBtn({ children, onPress }: { children: React.ReactNode; onPress: ()
 }
 
 function AreaBlock({ a, on, onPress }: { a: AreaSummary; on: boolean; onPress: () => void }) {
-  const p = LAYOUT[a.area_id] ?? { x: 16, y: 24, w: 150, h: 150 };
+  const p = LAYOUT[a.area_id] ?? { x: 16, y: 24, w: 684, h: 137 };
   const full = a.state === 'FULL';
   const border = on ? C.active : a.has_mine ? C.active : full ? '#ff373766' : C.line;
+  const stateOf = new Map(a.seats.map((s) => [s.seat_no, s.state] as const));
+  const rows = OV_ROWS[a.area_id] ?? [];
   return (
     <Pressable
       onPress={onPress}
@@ -236,31 +291,42 @@ function AreaBlock({ a, on, onPress }: { a: AreaSummary; on: boolean; onPress: (
         top: p.y,
         width: p.w,
         height: p.h,
-        borderRadius: 12,
+        borderRadius: 22,
         borderWidth: on ? 2 : 1,
         borderColor: border,
-        backgroundColor: on ? '#68D2C31F' : '#171717',
-        padding: 14,
-        justifyContent: 'space-between',
+        backgroundColor: on ? '#68D2C31F' : '#141416',
       }}
     >
-      <View style={{ gap: 4 }}>
-        <T style={{ fontSize: 20, letterSpacing: -0.5 }}>{a.name}</T>
-        <T mono style={{ color: full ? C.error : C.sub, fontSize: 12 }}>
-          {full ? '만차' : `빈자리 ${a.free_count} / ${a.seat_total}`}
-        </T>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
-        {a.seats.map((s) => (
-          <View key={s.zone_id} style={{ width: 12, height: 18, borderRadius: 3, backgroundColor: SEAT_COLOR[s.state], opacity: s.state === 'FREE' ? 0.9 : 1 }} />
-        ))}
-      </View>
-      {a.has_mine ? <T style={{ color: C.active, fontSize: 11, position: 'absolute', right: 12, top: 14 }}>내 자리</T> : null}
+      <T mono style={{ position: 'absolute', left: 16, top: 10, fontSize: 30, letterSpacing: -1 }}>{a.area_id}</T>
+      <T mono style={{ position: 'absolute', left: 16, top: 44, color: full ? C.error : on ? C.active : C.sub, fontSize: 12 }}>
+        {full ? '만차' : `빈자리 ${a.free_count} / ${a.seat_total}`}
+      </T>
+      {rows.map((row, r) => {
+        const x0 = Math.min(...row.map(([, c]) => c));
+        return row.map(([n, c]) => {
+          const st = stateOf.get(n) ?? 'TAKEN';
+          return (
+            <View
+              key={n}
+              style={{
+                position: 'absolute',
+                left: OV.left + (c - x0) * OV.scale,
+                top: r === 0 ? OV.row1 : OV.row2,
+                width: OV.seatW,
+                height: OV.seatH,
+                borderRadius: OV.radius,
+                backgroundColor: SEAT_COLOR[st],
+              }}
+            />
+          );
+        });
+      })}
+      {a.has_mine ? <T style={{ color: C.active, fontSize: 11, position: 'absolute', right: 16, top: 14 }}>내 자리</T> : null}
     </Pressable>
   );
 }
 
-/** 구역 안 맵: 빈자리는 비어 있고, 차 있는 자리에는 차가 있다. */
+/** 구역 안 맵: 지도처럼 확대·이동. 빈자리는 비어 있고, 차 있는 자리에는 차가 있다. */
 function AreaInside({
   areaId,
   seat,
@@ -276,7 +342,6 @@ function AreaInside({
 }) {
   const [d, setD] = useState<AreaDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [w, setW] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -289,12 +354,18 @@ function AreaInside({
     };
   }, [areaId, seat]);
 
-  const GAP = 10;
-  const slotW = d && w ? (w - GAP * (d.cols - 1)) / d.cols : 0;
-  const slotH = Math.min(slotW * 1.5, 130);
   const chosen = d?.seats.find((s) => s.zone_id === seat) ?? null;
   const bad = d?.selected_ok === false || chosen?.state === 'TAKEN';
   const canConfirm = !!chosen && !bad;
+
+  // 판 크기와 처음 보이는 위치(고른 자리가 가운데, 원래 크기 그대로)
+  const rowTop = (row: number) => PAD + row * (SH + ROW_GAP);
+  const world = d ? { w: PAD * 2 + d.cols * PITCH - (PITCH - SW), h: PAD * 2 + d.rows * SH + (d.rows - 1) * ROW_GAP } : null;
+  const start = useRef<{ x: number; y: number } | null>(null);
+  if (d && !start.current) {
+    const s0 = d.seats.find((x) => x.zone_id === seat) ?? d.seats.find((x) => x.state === 'FREE') ?? d.seats[0];
+    start.current = { x: PAD + s0.col * PITCH + SW / 2, y: rowTop(s0.row) + SH / 2 };
+  }
 
   return (
     <>
@@ -313,33 +384,26 @@ function AreaInside({
         </View>
       </View>
 
-      <View style={{ flex: 1, marginHorizontal: 16, borderRadius: 12, backgroundColor: C.hero, padding: 16, justifyContent: 'center' }}>
-        {d ? (
-          <View style={{ gap: GAP }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-            {Array.from({ length: d.rows }, (_, row) => (
-              <View key={row} style={{ flexDirection: 'row', gap: GAP, height: slotH }}>
-                {Array.from({ length: d.cols }, (_, col) => {
-                  const s = d.seats.find((x) => x.row === row && x.col === col);
-                  if (s) return <Seat key={col} s={s} w={slotW} h={slotH} on={seat === s.zone_id} bad={seat === s.zone_id && bad} onPress={() => onSeat(s.zone_id)} />;
-                  const isEntrance = d.entrance.row === row && d.entrance.col === col;
-                  return (
-                    <View key={col} style={{ width: slotW, height: slotH, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                      {isEntrance ? (
-                        <>
-                          <LogIn size={18} color={C.sub} style={{ transform: [{ rotate: '90deg' }] }} />
-                          <T style={{ color: C.sub, fontSize: 11, letterSpacing: 1 }}>입구</T>
-                        </>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </View>
+      <View style={{ flex: 1, marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: C.hero }}>
+        {d && world && start.current ? (
+          <PanZoom worldW={world.w} worldH={world.h} focus={{ ...start.current, s: 1 }} focusKey={areaId} minS={0.25} maxS={2}>
+            {d.seats.map((s) => (
+              <Seat
+                key={s.zone_id}
+                s={s}
+                x={PAD + s.col * PITCH}
+                y={rowTop(s.row)}
+                lower={s.row > 0}
+                on={seat === s.zone_id}
+                bad={seat === s.zone_id && bad}
+                onPress={() => onSeat(s.zone_id)}
+              />
             ))}
-          </View>
+          </PanZoom>
         ) : error ? (
-          <T style={{ color: C.error, fontSize: 13 }}>{error}</T>
+          <T style={{ color: C.error, fontSize: 13, padding: 24 }}>{error}</T>
         ) : (
-          <ActivityIndicator color={C.text} />
+          <ActivityIndicator color={C.text} style={{ marginTop: 80 }} />
         )}
       </View>
 
@@ -349,7 +413,7 @@ function AreaInside({
             ? '이미 선정된 자리예요. 다른 자리를 골라 주세요.'
             : chosen
               ? `${chosen.seat_no}번 자리를 골랐어요`
-              : '빈자리를 눌러서 골라 주세요.'}
+              : '빈자리를 눌러서 골라 주세요. 확대·이동도 돼요.'}
         </T>
         <Button label="이 자리로 선택" disabled={!canConfirm} onPress={() => chosen && onConfirm(chosen.zone_id)} />
       </View>
@@ -357,52 +421,54 @@ function AreaInside({
   );
 }
 
+/** 자리 박스(74×132, 모서리 12). 윗줄은 차가 위·번호가 아래, 아랫줄은 반대(디자인 그대로) */
 function Seat({
   s,
-  w,
-  h,
+  x,
+  y,
+  lower,
   on,
   bad,
   onPress,
 }: {
   s: AreaDetail['seats'][number];
-  w: number;
-  h: number;
+  x: number;
+  y: number;
+  lower: boolean;
   on: boolean;
   bad: boolean;
   onPress: () => void;
 }) {
   const taken = s.state === 'TAKEN';
   const mine = s.state === 'MINE';
-  const border = bad ? C.error : on || mine ? C.active : C.line;
-  const bg = bad ? '#ff373722' : on || mine ? '#68D2C322' : taken ? '#141414' : '#262626';
-  const carH = h - 34;
+  const picked = on || mine;
+  const bg = bad ? '#ff3b30' : picked ? '#68D2C3' : taken ? '#262628' : '#cfcfd4';
+  const numColor = bad ? '#ffffff' : picked ? '#00302a' : taken ? '#8e8e93' : '#3a3a3c';
+  const showCar = taken || bad;
+  const carH = 92;
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        width: w,
-        height: h,
-        borderRadius: 8,
-        borderWidth: on || mine || bad ? 2 : 1,
-        borderColor: border,
-        backgroundColor: bg,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        paddingBottom: 6,
-      }}
+      style={{ position: 'absolute', left: x, top: y, width: SW, height: SH, borderRadius: SR, backgroundColor: bg }}
     >
-      <T mono style={{ position: 'absolute', left: 7, top: 5, fontSize: 11, color: bad ? C.error : on || mine ? C.active : C.muted }}>
-        {s.seat_no}
-      </T>
-      {taken || mine ? (
+      {showCar ? (
         <Image
           source={CAR}
           resizeMode="contain"
-          style={{ width: carH * CAR_RATIO * 1.1, height: carH, opacity: taken ? 0.75 : 1 }}
+          style={{
+            position: 'absolute',
+            left: (SW - carH * CAR_RATIO) / 2,
+            top: lower ? SH - 10 - carH : 10,
+            width: carH * CAR_RATIO,
+            height: carH,
+            opacity: taken ? 0.85 : 1,
+            transform: lower ? [{ rotate: '180deg' }] : undefined,
+          }}
         />
       ) : null}
-      {mine ? <T style={{ position: 'absolute', right: 6, top: 5, fontSize: 10, color: C.active }}>내 차</T> : null}
+      <T mono style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', top: lower ? 8 : 102, fontSize: 20, color: numColor }}>
+        {s.seat_no}
+      </T>
     </Pressable>
   );
 }

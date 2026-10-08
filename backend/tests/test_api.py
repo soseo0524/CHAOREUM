@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 import models as m
 from database import Base, SessionLocal, engine
 from main import app
-from seed import seed_dev
+from schemas.parking_map import ALL_SEAT_NUMBERS, AREA_ROWS, seat_no_of, seat_zone_id
+from seed import seed_dev, sync_parking_zones
 from state import ros
 
 client = TestClient(app)
@@ -257,7 +258,8 @@ def test_parking_zone_pick_list_full_and_edit():
     vid = vehicle(); assign(vid)
     client.post("/consents", headers=UH, json=dict(version="v1"))
     zs = client.get("/parking-zones", headers=UH).json()
-    assert {z["id"] for z in zs} == {f"PARKING_{n:02d}" for n in range(1, 22)} and all(z["is_available"] and z["capacity"] == 1 for z in zs)
+    assert {z["id"] for z in zs} == {seat_zone_id(n) for n in ALL_SEAT_NUMBERS} and len(zs) == 57
+    assert all(z["is_available"] and z["capacity"] == 1 for z in zs)
     bad = client.post("/charge-requests", headers=UH, json=body(vid, parking_zone_id="CHARGE_01"))  # PARKING 아님
     assert bad.status_code == 422
     r = client.post("/charge-requests", headers=UH, json=body(vid, parking_zone_id="PARKING_01"))
@@ -409,43 +411,83 @@ def test_cost_keeps_the_price_at_session_start(monkeypatch):
     assert after["unit_price_won"] == before["unit_price_won"] and after["cost_won"] == before["cost_won"]  # 단가를 바꿔도 지난 세션 금액은 그대로
 
 
+def test_parking_seat_numbering_is_0_to_65_with_57_seats():
+    missing = {12, 14, 27, 30, 31, 34, 35, 39, 44}
+    assert ALL_SEAT_NUMBERS == [n for n in range(66) if n not in missing] and len(ALL_SEAT_NUMBERS) == 57
+    assert [len(sum(AREA_ROWS[a], [])) for a in "ABC"] == [17, 26, 14] and [len(AREA_ROWS[a]) for a in "ABC"] == [1, 2, 1]
+    assert seat_zone_id(0) == "PARKING_00" and seat_zone_id(65) == "PARKING_65"
+    assert seat_no_of("PARKING_00") == 0 and seat_no_of("PARKING_65") == 65 and seat_no_of("CHARGE_01") is None and seat_no_of(None) is None
+    assert sorted(z.id for z in db_rows(m.ParkingZone) if z.kind == "PARKING") == [seat_zone_id(n) for n in ALL_SEAT_NUMBERS]
+
+
+def test_seed_sync_replaces_old_21_seat_layout():
+    from schemas.common import ParkingZoneKind
+    with SessionLocal() as db:
+        db.add(m.ParkingZone(id="PARKING_14", name="14번 자리", kind=ParkingZoneKind.PARKING, capacity=1, pose_x=0.0, pose_y=0.0, pose_yaw=0.0))  # 옛 지도의 자리
+        db.delete(db.get(m.ParkingZone, "PARKING_65"))
+        db.commit()
+        sync_parking_zones(db); db.commit()
+        sync_parking_zones(db); db.commit()  # 반복 실행해도 같다
+        assert db.get(m.ParkingZone, "PARKING_14") is None and db.get(m.ParkingZone, "PARKING_65") is not None
+    assert len([z for z in db_rows(m.ParkingZone) if z.kind == "PARKING"]) == 57
+
+
+def test_parked_notice_says_seat_number_including_zero():
+    vid = vehicle(); assign(vid)
+    now = datetime.now(timezone.utc).isoformat()
+    for zone, text in (("PARKING_00", "0번 자리에 도착했어요."), ("PARKING_65", "65번 자리에 도착했어요.")):
+        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="CHARGE_DONE", soc=80, zone_id="CHARGE_01", last_seen_at=now)])))
+        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="PARKED", soc=80, zone_id=zone, last_seen_at=now)])))
+        assert text in [n["body"] for n in client.get("/me/notifications", headers=UH).json()]
+
+
 def test_parking_areas_overview_and_detail():
     r = client.get("/parking-zones/areas", headers=UH).json()["areas"]
     assert [a["area_id"] for a in r] == ["A", "B", "C"] and [a["name"] for a in r] == ["A구역", "B구역", "C구역"]
-    assert all(a["seat_total"] == 7 and a["free_count"] == 7 and a["state"] == "OPEN" and not a["has_mine"] for a in r)
-    assert [x["seat_no"] for x in r[0]["seats"]] == list(range(1, 8)) and r[2]["seats"][0]["zone_id"] == "PARKING_15"
+    assert [a["seat_total"] for a in r] == [17, 26, 14] and [a["free_count"] for a in r] == [17, 26, 14]
+    assert all(a["state"] == "OPEN" and not a["has_mine"] for a in r)
+    assert [x["seat_no"] for x in r[0]["seats"]] == [61, 45, 43, 42, 40, 41, 38, 37, 36, 58, 33, 32, 59, 29, 28, 62, 26]  # 실제 배치 순서
+    assert r[1]["seats"][0]["zone_id"] == "PARKING_00" and r[2]["seats"][0]["zone_id"] == "PARKING_57" and r[2]["seats"][-1]["zone_id"] == "PARKING_64"
     d = client.get("/parking-zones/areas/a", headers=UH).json()  # 대소문자 무관
-    assert d["area_id"] == "A" and d["rows"] == 2 and d["cols"] == 4 and d["entrance"] == {"row": 1, "col": 3}
+    assert d["area_id"] == "A" and d["rows"] == 1 and d["cols"] == 17 and d["entrance"] is None
     pos = {x["seat_no"]: (x["row"], x["col"]) for x in d["seats"]}
-    assert pos[1] == (0, 0) and pos[4] == (0, 3) and pos[5] == (1, 0) and pos[7] == (1, 2)  # 윗줄 4칸 + 아랫줄 3칸
+    assert pos[61] == (0, 0) and pos[33] == (0, 10) and pos[26] == (0, 16) and len(pos) == 17  # 한 줄 17칸
     assert d["selected_ok"] is None and all(x["state"] == "FREE" for x in d["seats"])
+    b = client.get("/parking-zones/areas/B", headers=UH).json()
+    assert b["rows"] == 2 and b["cols"] == 13 and b["seat_total"] == 26
+    pos = {x["seat_no"]: (x["row"], x["col"]) for x in b["seats"]}
+    assert pos[0] == (0, 0) and pos[60] == (0, 12) and pos[25] == (1, 0) and pos[63] == (1, 12) and pos[13] == (1, 11)  # 두 줄 13칸씩
+    c = client.get("/parking-zones/areas/C", headers=UH).json()
+    assert c["rows"] == 1 and c["cols"] == 14 and {x["seat_no"] for x in c["seats"]} == set(AREA_ROWS["C"][0])
     assert client.get("/parking-zones/areas/Z", headers=UH).status_code == 404
     assert client.get("/parking-zones/areas").status_code in (401, 403)
     # 고르는 중인 자리는 MINE, 구역 밖 자리를 보내도 이 구역은 그대로
-    sel = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()
-    assert [x["state"] for x in sel["seats"] if x["seat_no"] == 3] == ["MINE"] and sel["selected_ok"] is True
-    # 다른 사용자가 3번을 선정하면 TAKEN(02-A.02), 내 쪽 selected_ok=false. 주인 화면에서는 MINE
+    sel = client.get("/parking-zones/areas/A?selected=PARKING_33", headers=UH).json()
+    assert [x["state"] for x in sel["seats"] if x["seat_no"] == 33] == ["MINE"] and sel["selected_ok"] is True
+    outside = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()  # 3번은 B구역
+    assert all(x["state"] == "FREE" for x in outside["seats"])
+    # 다른 사용자가 33번을 선정하면 TAKEN(02-A.02), 내 쪽 selected_ok=false. 주인 화면에서는 MINE
     other = uuid.uuid4(); oh = H(other, "user")
     ov = client.post("/vehicles", headers=oh, json=dict(plate_no="99허9999", battery_kwh=60, max_charge_kw=11)).json()["id"]
     assign(ov, "CAR_02"); client.post("/consents", headers=oh, json=dict(version="v1"))
-    assert client.post("/charge-requests", headers=oh, json=body(ov, parking_zone_id="PARKING_03")).status_code == 201
-    mine_view = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()
-    assert [x["state"] for x in mine_view["seats"] if x["seat_no"] == 3] == ["TAKEN"] and mine_view["selected_ok"] is False and mine_view["free_count"] == 6
+    assert client.post("/charge-requests", headers=oh, json=body(ov, parking_zone_id="PARKING_33")).status_code == 201
+    mine_view = client.get("/parking-zones/areas/A?selected=PARKING_33", headers=UH).json()
+    assert [x["state"] for x in mine_view["seats"] if x["seat_no"] == 33] == ["TAKEN"] and mine_view["selected_ok"] is False and mine_view["free_count"] == 16
     owner_view = client.get("/parking-zones/areas/A", headers=oh).json()
-    assert [x["state"] for x in owner_view["seats"] if x["seat_no"] == 3] == ["MINE"]
+    assert [x["state"] for x in owner_view["seats"] if x["seat_no"] == 33] == ["MINE"]
     ov_all = client.get("/parking-zones/areas", headers=oh).json()["areas"]
-    assert ov_all[0]["has_mine"] is True and ov_all[0]["free_count"] == 7 and ov_all[1]["has_mine"] is False  # 내 자리는 내 화면에서 빈자리로 세지 않는 TAKEN이 아님
-    assert client.get("/parking-zones/areas", headers=UH).json()["areas"][0]["free_count"] == 6
+    assert ov_all[0]["has_mine"] is True and ov_all[0]["free_count"] == 17 and ov_all[1]["has_mine"] is False  # 내 자리는 내 화면에서 빈자리로 세지 않는 TAKEN이 아님
+    assert client.get("/parking-zones/areas", headers=UH).json()["areas"][0]["free_count"] == 16
 
 
 def test_full_area_is_marked_full():
     with SessionLocal() as db:
-        for n in range(8, 15):
-            z = db.get(m.ParkingZone, f"PARKING_{n:02d}")
+        for n in sum(AREA_ROWS["B"], []):
+            z = db.get(m.ParkingZone, seat_zone_id(n))
             z.capacity = 0
         db.commit()
     areas = {a["area_id"]: a for a in client.get("/parking-zones/areas", headers=UH).json()["areas"]}
-    assert areas["B"]["state"] == "FULL" and areas["B"]["free_count"] == 0 and areas["A"]["state"] == "OPEN"
+    assert areas["B"]["state"] == "FULL" and areas["B"]["free_count"] == 0 and areas["B"]["seat_total"] == 26 and areas["A"]["state"] == "OPEN"
     assert client.get("/parking-zones/areas/B", headers=UH).json()["state"] == "FULL"
 
 
