@@ -17,6 +17,8 @@ import { supabase } from './supabase';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: any) {
     super(message);
@@ -31,14 +33,19 @@ async function token(): Promise<string | null> {
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const t = await token();
   let res: Response;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS); // 응답이 없을 때 끝없이 기다리지 않게
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: ctrl.signal,
     });
   } catch {
-    throw new ApiError(0, 'NETWORK', '서버에 연결할 수 없어요. 같은 Wi-Fi인지, 서버가 켜져 있는지 확인해 주세요.');
+    throw new ApiError(0, 'NETWORK', `서버에 연결할 수 없어요. (${API_URL || '서버 주소 없음'})`);
+  } finally {
+    clearTimeout(timer);
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) {

@@ -172,10 +172,18 @@ export default function Home() {
 
   switch (hs) {
     case HomeState.NO_DATA:
-      title = '불러오는 중이에요';
+      // 배정은 됐지만 관제가 아직 이 차 상태를 한 번도 보내지 않음(관제 미연결 포함). 끝없는 로딩 대신 이유를 보여 준다
+      title = '차량 정보를 기다려요';
       titleColor = C.sub;
       showMetrics = false;
-      body = <ActivityIndicator color={C.text} style={{ marginTop: 24 }} />;
+      body = (
+        <Notice
+          eyebrow="상황"
+          body={`관제 시스템에서 ${v.plate_no}의 배터리·위치 정보를 아직 받지 못했어요.`}
+          sub="정보가 들어오면 자동으로 바뀌어요. 그 전에도 충전 요청은 할 수 있어요."
+        />
+      );
+      footer = req ? null : <Button label="충전 요청하기" onPress={goRequest} />;
       break;
     case HomeState.NO_REQUEST: {
       title = '충전 요청이 없어요';

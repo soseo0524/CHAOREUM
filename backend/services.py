@@ -43,13 +43,11 @@ def zone_availability(db: Session, zone_id: str | None = None):
     q = select(m.ParkingZone).where(m.ParkingZone.kind == ParkingZoneKind.PARKING)
     if zone_id:
         q = q.where(m.ParkingZone.id == zone_id)
-    out = []
     active = (S.REQUESTED, S.ACCEPTED, S.SCHEDULED, S.IN_PROGRESS)
-    for z in db.scalars(q.order_by(m.ParkingZone.id)):
-        parked = db.scalar(select(func.count()).select_from(m.VehicleStateRow).where(m.VehicleStateRow.zone_id == z.id, m.VehicleStateRow.state == VehicleState.PARKED)) or 0
-        held = db.scalar(select(func.count()).select_from(m.ChargeRequest).where(m.ChargeRequest.parking_zone_id == z.id, m.ChargeRequest.status.in_(active))) or 0
-        out.append((z, max(z.capacity - parked - held, 0)))
-    return out
+    # 구역마다 따로 세지 않고 한 번에 집계한다(원격 DB에서 구역 수 × 왕복이 되면 수십 초 걸림)
+    parked = dict(db.execute(select(m.VehicleStateRow.zone_id, func.count()).where(m.VehicleStateRow.state == VehicleState.PARKED, m.VehicleStateRow.zone_id.is_not(None)).group_by(m.VehicleStateRow.zone_id)).all())
+    held = dict(db.execute(select(m.ChargeRequest.parking_zone_id, func.count()).where(m.ChargeRequest.status.in_(active), m.ChargeRequest.parking_zone_id.is_not(None)).group_by(m.ChargeRequest.parking_zone_id)).all())
+    return [(z, max(z.capacity - parked.get(z.id, 0) - held.get(z.id, 0), 0)) for z in db.scalars(q.order_by(m.ParkingZone.id))]
 
 
 def request_out(r: m.ChargeRequest) -> ChargeRequestOut:
