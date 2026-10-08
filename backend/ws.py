@@ -38,18 +38,25 @@ async def ws_status(ws: WebSocket):
 
 @router.websocket("/ws/gateway")
 async def ws_gateway(ws: WebSocket):
-    """ROS_MODE=gateway 에서 관제 쪽 게이트웨이가 연결하는 선. 첫 메시지 {"type":"auth","token":GATEWAY_TOKEN}."""
+    """ROS_MODE=gateway 에서 관제 쪽 게이트웨이가 연결하는 선. 인증은 GATEWAY_TOKEN(헤더 또는 첫 메시지)."""
     await ws.accept()
-    try:
-        msg = await asyncio.wait_for(ws.receive_json(), settings.ws_auth_timeout_s)
-        ok = msg.get("type") == "auth" and bool(settings.gateway_token) and hmac.compare_digest(str(msg.get("token", "")), settings.gateway_token)
-    except (asyncio.TimeoutError, ValueError, WebSocketDisconnect):
-        ok = False
+    header = ws.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):  # 관제 담당 게이트웨이(macaron8): 헤더 인증, {type, payload} 형식
+        protocol = "macaron"
+        ok = bool(settings.gateway_token) and hmac.compare_digest(header[7:].strip(), settings.gateway_token)
+    else:  # gateway/ros_gateway_client.py: 첫 메시지 auth, {topic, data} 형식
+        protocol = "aiot"
+        try:
+            msg = await asyncio.wait_for(ws.receive_json(), settings.ws_auth_timeout_s)
+            ok = msg.get("type") == "auth" and bool(settings.gateway_token) and hmac.compare_digest(str(msg.get("token", "")), settings.gateway_token)
+        except (asyncio.TimeoutError, ValueError, WebSocketDisconnect):
+            ok = False
     if not ok or not hasattr(ros, "attach"):
         await ws.close(code=4401)
         return
-    await ws.send_json({"type": "auth_ok"})
-    await ros.attach(ws, asyncio.get_running_loop())
+    if protocol == "aiot":
+        await ws.send_json({"type": "auth_ok"})
+    await ros.attach(ws, asyncio.get_running_loop(), protocol)
     try:
         while True:
             raw = await ws.receive_text()

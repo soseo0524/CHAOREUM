@@ -17,7 +17,9 @@
   - 서버 → 관제: `/charging/request`, `/charging/cancel`, `/admin/command`, `/emergency_stop`. 연결이 끊긴 동안 쌓인 메시지(최대 500개)는 재연결 시 순서대로 전달된다.
   - 관제 → 서버: `/central_status`만 받는다. 메시지 형식은 `{"topic": "...", "data": "<JSON 문자열>"}`.
   - 게이트웨이 스크립트는 ROS 2 환경에서 아직 시험하지 않았다. 서버 쪽은 자동 테스트(`backend/tests/test_gateway.py`)가 있다.
-  - **현재 관제(`macaron8_AIOT-main`)와 연결할 때**는 게이트웨이에 `CONTROLLER_API=http://127.0.0.1:8081`을 준다. 그러면 요청·취소를 관제 HTTP API(`POST /api/charging/requests`, CREATE/UPDATE/CANCEL)로 바꿔 호출하고, 관제 `/central_status`를 이 문서 형식으로 바꿔 서버에 보낸다. 번역 규칙과 아직 합의 전인 임시 규칙(주차 완료 판정, 진행 중 취소, 주차 구역 미지원, 비상정지 미지원)은 `gateway/macaron_adapter.py` 맨 위에 있다. 테스트: `backend/tests/test_macaron_adapter.py`.
+  - **현재 관제(`macaron8_AIOT-main`)는 관제 담당이 만든 게이트웨이**(`src/aiot_central_control/gateway/ros_gateway_client.py`)를 쓴다. 관제 PC에서 `AIOT_WS_URL=wss://<서버>/ws/gateway`, `AIOT_WS_TOKEN=<GATEWAY_TOKEN>`으로 실행하면 `Authorization: Bearer` 헤더로 붙고, 서버가 그 형식(`{"type": "charging_request" | "charging_cancel" | "central_status" | "request_result", "payload": ...}`)을 알아서 번역한다(`backend/macaron.py`, 테스트 `backend/tests/test_macaron.py`).
+    - 주차는 **구역(A/B/C) 단위**로 전달된다. 사용자가 고른 칸(`PARKING_nn`)은 그 칸의 구역으로 바뀌어 가고, 실제 칸은 관제가 고른다. 관제 칸 ID `PARKING_5`는 서버에서 `PARKING_05`로 맞춘다.
+    - 관제 요청 `COMPLETED` = 최종 주차 도착, 취소 = 출차 구역으로 이동 후 `CANCELLED`. `/emergency_stop`, 관리자 `retry`·`reassign`은 관제에 기능이 없어 전달하지 않는다. `battery_kwh`, `max_charge_kw`는 관제가 아직 쓰지 않는다.
 - `rclpy`: 서버가 ROS 2 노드로 직접 붙는 방식. 아직 구현하지 않았다.
 
 ## 토픽 목록

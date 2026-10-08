@@ -16,7 +16,7 @@ from .common import (
     TaskType,
     VehicleState,
 )
-from .status import CurrentTask
+from .status import CurrentTask, Pose
 
 Reason = Field(min_length=2, max_length=500, description="감사 로그용 사유(필수)")
 ROS_ID_PATTERN = r"^[A-Za-z0-9_\-]{1,32}$"  # 예: CAR_01, EV-01(관제 macaron8 차량 ID)
@@ -51,6 +51,7 @@ class AdminVehicleOut(ApiModel):
     online: bool
     soc: float | None
     zone_id: str | None
+    pose: Pose | None = Field(None, description="관제 지도 좌표계(camera_map) 위치 x·y(m), yaw(rad, 반시계 +). 관리자 지도에 차량을 그릴 때 사용")
     charger_id: str | None
     current_task: CurrentTask | None
     active_request: ChargeRequestOut | None

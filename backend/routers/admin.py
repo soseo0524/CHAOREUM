@@ -25,7 +25,7 @@ def _vehicle_out(db: Session, v: m.Vehicle) -> AdminVehicleOut:
     p = db.get(m.Profile, v.owner_id) if v.owner_id else None
     return AdminVehicleOut(
         id=v.id, ros_vehicle_id=v.ros_vehicle_id, plate_no=v.plate_no, model=v.model, battery_kwh=v.battery_kwh, max_charge_kw=v.max_charge_kw,
-        owner=AdminOwner(id=p.id, name=p.name) if p else None, state=vs.state, online=vs.online, soc=vs.soc, zone_id=vs.zone_id,
+        owner=AdminOwner(id=p.id, name=p.name) if p else None, state=vs.state, online=vs.online, soc=vs.soc, zone_id=vs.zone_id, pose=vs.pose,
         charger_id=vs.charger_id, current_task=vs.current_task, active_request=vs.active_request, last_seen_at=vs.last_seen_at)
 
 
