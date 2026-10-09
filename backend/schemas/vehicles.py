@@ -7,7 +7,7 @@ from pydantic import AwareDatetime, Field
 
 from .common import ApiModel
 
-PLATE_PATTERN = r"^[0-9가-힣A-Za-z ]{4,12}$"
+PLATE_PATTERN = r"^[0-9가-힣A-Za-z \-]{4,12}$"  # 하이픈 허용(예: EV-01)
 
 
 class VehicleCreate(ApiModel):

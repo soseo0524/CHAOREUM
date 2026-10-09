@@ -87,6 +87,9 @@ def _mine(db: Session, rid: UUID, u: CurrentUser):
 def patch(request_id: UUID, body: ChargeRequestPatch, u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
     r, v = _mine(db, request_id, u)
     if body.cancel:
+        if r.status == S.CANCEL_REQUESTED:  # 이미 취소 중: 관제 응답이 없을 때 다시 눌러 재전송(같은 내용이라 안전)
+            ros.publish("/charging/cancel", ChargingCancelMsg(request_id=str(r.id), vehicle_id=v.ros_vehicle_id, requested_by="user"))
+            return ChargeRequestPatchResponse(request=request_out(r))
         if r.status not in {S.REQUESTED, S.ACCEPTED, S.SCHEDULED, S.IN_PROGRESS}:
             raise ApiError(409, ErrorCode.REQUEST_NOT_MODIFIABLE, "취소할 수 없는 상태입니다.")
         before, outbox = queue_order(db), []

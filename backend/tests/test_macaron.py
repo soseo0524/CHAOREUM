@@ -176,3 +176,18 @@ def test_translated_status_always_passes_our_contract():
     assert msg["vehicles"][0]["state"] == "FAULT" and msg["vehicles"][0]["zone_id"] == "PARKING_63"
     assert [r["request_id"] for r in msg["requests"]] == ["11111111-1111-4111-8111-111111111111"]  # UUID 아닌 요청 제외
     assert msg["events"][0]["event_id"] and msg["events"][0]["type"] == "VEHICLE_TASK_DISPATCHED"
+
+
+def test_cancel_of_request_unknown_to_controller_completes(gw, monkeypatch):
+    rid = start()  # 관제 연결 전에 만든 요청(관제는 모른다)
+    gw.pending.clear()
+    monkeypatch.setattr(GatewayRosBridge, "CANCEL_GRACE_S", 0.0)
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        assert client.patch(f"/charge-requests/{rid}", headers=UH, json={"cancel": True}).status_code == 200
+        assert json.loads(s.receive_text())["type"] == "charging_cancel"
+        again = client.patch(f"/charge-requests/{rid}", headers=UH, json={"cancel": True})  # 취소 중 다시 누르면 재전송
+        assert again.status_code == 200 and json.loads(s.receive_text())["type"] == "charging_cancel"
+        raw = raw_status(rid, "ACTIVE")
+        raw["requests"] = []  # 관제 요청 목록에 없음
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw)}))
+        assert wait_home(lambda v: v["home_state"] == "CANCELLED")["home_state"] == "CANCELLED"

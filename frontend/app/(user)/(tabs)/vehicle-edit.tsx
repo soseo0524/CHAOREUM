@@ -9,7 +9,7 @@ import type { Vehicle } from '@/constants/types';
 import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 
-const PLATE = /^[0-9가-힣A-Za-z ]{4,12}$/; // 서버 PLATE_PATTERN과 같음
+const PLATE = /^[0-9가-힣A-Za-z \-]{4,12}$/; // 서버 PLATE_PATTERN과 같음
 
 export default function VehicleEdit() {
   const { id } = useLocalSearchParams<{ id: string }>();

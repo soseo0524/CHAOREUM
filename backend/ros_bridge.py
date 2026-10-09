@@ -53,6 +53,7 @@ class GatewayRosBridge:
         self.connected = False
         self.protocol = "aiot"
         self.vehicle_of: dict[str, str] = {}  # request_id → ros vehicle_id (관제 거절 응답을 요청에 붙이려고)
+        self.cancel_sent: dict[str, float] = {}  # 관제에 취소를 보낸 요청 → 보낸 시각(관제가 모르는 요청이면 취소 완료 처리)
         self._ws = None
         self._loop = None
         self._cb: Callable | None = None
@@ -62,6 +63,10 @@ class GatewayRosBridge:
         rid, vid = getattr(msg, "request_id", None), getattr(msg, "vehicle_id", None)
         if rid and vid:
             self.vehicle_of[str(rid)] = vid
+        if topic == "/charging/cancel" and rid:
+            import time
+
+            self.cancel_sent[str(rid)] = time.monotonic()
         if not self._send(topic, data):
             self.pending.append((topic, data))
 
@@ -100,6 +105,22 @@ class GatewayRosBridge:
         if self._ws is ws:
             self._ws, self.connected = None, False
 
+    CANCEL_GRACE_S = 5.0
+
+    def _finish_unknown_cancels(self, payload: dict, msg: dict) -> None:
+        """취소를 보냈는데 관제 요청 목록에 끝내 없으면(관제가 모르는 요청) 취소 완료로 알린다.
+        관제 연결 전(mock 등)에 만든 요청은 관제가 몰라서 취소 응답이 오지 않을 수 있다."""
+        import time
+
+        known = {str(r.get("request_id")) for r in payload.get("requests", [])}
+        now = time.monotonic()
+        for rid, sent in list(self.cancel_sent.items()):
+            if rid in known:  # 관제가 아는 요청: 관제가 보내는 상태(취소 처리 중 → 취소 완료)를 따른다
+                self.cancel_sent.pop(rid, None)
+            elif now - sent >= self.CANCEL_GRACE_S and self.vehicle_of.get(rid):
+                msg.setdefault("requests", []).append({"request_id": rid, "vehicle_id": self.vehicle_of[rid], "status": "CANCELLED"})
+                self.cancel_sent.pop(rid, None)
+
     def receive(self, raw: str) -> None:
         import json
 
@@ -110,7 +131,10 @@ class GatewayRosBridge:
             from macaron import failure_from_result, status_from_controller
 
             if d.get("type") == "central_status":
-                self._cb(parse_topic("/central_status", json.dumps(status_from_controller(d.get("payload") or {}))))
+                payload = d.get("payload") or {}
+                msg = status_from_controller(payload)
+                self._finish_unknown_cancels(payload, msg)
+                self._cb(parse_topic("/central_status", json.dumps(msg)))
             elif d.get("type") == "request_result":
                 msg = failure_from_result(d, self.vehicle_of)
                 if msg:

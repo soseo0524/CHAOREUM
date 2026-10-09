@@ -8,7 +8,7 @@ import { C } from '@/constants/theme';
 import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 
-const PLATE = /^[0-9가-힣A-Za-z ]{4,12}$/; // 서버 PLATE_PATTERN과 같음
+const PLATE = /^[0-9가-힣A-Za-z \-]{4,12}$/; // 서버 PLATE_PATTERN과 같음
 const DEFAULT_MAX_CHARGE_KW = 11; // 디자인에 입력칸이 없어 충전기 출력(11 kW)을 기본값으로 보낸다
 
 export default function VehicleNew() {
