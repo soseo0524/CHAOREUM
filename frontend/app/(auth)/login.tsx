@@ -33,9 +33,9 @@ export default function Login() {
       <Screen contentStyle={{ gap: 56, paddingTop: 12 }}>
         <Wordmark />
         <View style={{ gap: 16 }}>
-          <T style={{ fontSize: 40, letterSpacing: -1.2, lineHeight: 48 }}>{'충전하고,\n주차까지 알아서.'}</T>
+          <T style={{ fontSize: 40, letterSpacing: -1.2, lineHeight: 48 }}>{'충전부터\n주차까지 알아서.'}</T>
           <T style={{ color: C.sub, fontSize: 14, lineHeight: 22 }}>
-            {'차량을 맡기면 충전소로 이동해 충전하고, \n끝나면 주차 구역까지 데려다줘요.'}
+            {'차량을 맡기면 충전 후 주차까지\n자동으로 완료해드려요.'}
           </T>
         </View>
         <View style={{ gap: 12 }}>
