@@ -180,10 +180,15 @@ export default function Home() {
         <Notice
           eyebrow="상황"
           body={`관제 시스템에서 ${v.plate_no}의 배터리·위치 정보를 아직 받지 못했어요.`}
-          sub="정보가 들어오면 자동으로 바뀌어요. 그 전에도 충전 요청은 할 수 있어요."
+          sub={req ? '접수된 충전 요청이 있어요. 정보가 들어오면 진행 상황이 보여요.' : '정보가 들어오면 자동으로 바뀌어요. 그 전에도 충전 요청은 할 수 있어요.'}
         />
       );
-      footer = req ? null : <Button label="충전 요청하기" onPress={goRequest} />;
+      // 진행 중인 요청이 있으면 여기서도 취소할 수 있어야 한다(차량 정보가 없어도 요청은 살아 있음)
+      footer = req ? (
+        <Button kind="danger" label="요청 취소" onPress={cancel} loading={busy} />
+      ) : (
+        <Button label="충전 요청하기" onPress={goRequest} />
+      );
       break;
     case HomeState.NO_REQUEST: {
       title = '충전 요청이 없어요';
