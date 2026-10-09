@@ -58,3 +58,21 @@ def get_db():
 def init_dev_db():
     """개발·테스트용: 테이블 생성. 운영 DB는 Alembic(backend/db/schema.sql)으로만 만든다."""
     Base.metadata.create_all(engine)
+
+
+def migrate_db() -> None:
+    """운영(Postgres): 서버가 켜질 때 Alembic 마이그레이션을 최신으로 맞춘다(이미 최신이면 아무것도 안 함).
+
+    배포 플랫폼의 '배포 전 명령' 설정에 기대지 않으려고 코드에서 실행한다. 실패하면 예외로 서버 시작을 막는다
+    (스키마가 코드와 다른 채로 요청을 받으면 더 큰 오류가 나므로).
+    """
+    from pathlib import Path
+
+    from alembic import command
+    from alembic.config import Config
+
+    here = Path(__file__).resolve().parent
+    cfg = Config(str(here / "alembic.ini"))
+    cfg.set_main_option("script_location", str(here / "alembic"))
+    command.upgrade(cfg, "head")
+

@@ -12,7 +12,7 @@ from config import settings
 import models  # noqa: F401  (테이블 등록)
 import repo
 import ws as ws_router
-from database import SessionLocal, engine, init_dev_db 
+from database import SessionLocal, engine, init_dev_db, migrate_db
 from seed import seed_dev
 from services import apply_central_status, vehicle_status
 from state import dispatch, hub, ros, runtime
@@ -41,6 +41,8 @@ if engine.dialect.name == "sqlite":  # 개발 모드: 테이블·시드를 자�
     init_dev_db()
     with SessionLocal() as _db:
         seed_dev(_db)
+else:  # 운영: 켜질 때 마이그레이션(새 리비전이 있으면 적용, 최신이면 그대로)
+    migrate_db()
 
 
 def _on_central(msg):
