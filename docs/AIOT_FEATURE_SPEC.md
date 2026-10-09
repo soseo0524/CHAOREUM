@@ -174,7 +174,7 @@
 | 02-A.02 이미 선정된 자리 | 같은 API + `?selected=PARKING_33` | 그 자리가 이미 선정됐으면 `selected_ok=false`(그 자리는 TAKEN). 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
 | 02-A.03 가득 찬 구역 | 위 두 API의 `state=FULL` | 앱이 "가득 찬 구역이에요"로 버튼을 막는다 |
 
-- 자리 번호 n = 주차 구역 `PARKING_nn`(capacity 1). 고른 자리의 `zone_id`를 충전 요청의 `parking_zone_id`로 보낸다.
+- **사용자는 구역(A·B·C)만 고른다.** 고른 구역을 충전 요청의 `parking_area`로 보내고, 구역 안의 빈 칸은 관제가 고른다(실제 칸은 차량 `zone_id`로 표시). 자리 번호 n = `PARKING_nn`(capacity 1)은 지도 표시·현황용이다.
 - 옛 1인칭 줄 방식 `GET /parking-zones/map`은 삭제했다.
 - 구역 묶음(A·B·C)은 서버 코드(`schemas/parking_map.py`의 `AREAS`)에 있고 DB에는 없다. 구역 수·범위를 바꾸려면 이 값만 고치면 된다.
 
@@ -277,7 +277,7 @@
 | profiles | id(auth.users FK), name, phone, app_role(user/admin), status(ACTIVE/SUSPENDED), is_super_admin, notification_prefs(jsonb), created_at, updated_at | 사용자 프로필과 권한, 알림 종류별 켜기/끄기 |
 | vehicles | id(UUID), ros_vehicle_id(TEXT, nullable, 예 CAR_01), owner_id(nullable), plate_no, model, battery_kwh, max_charge_kw, created_at, updated_at, deleted_at | 등록 차량(soft delete, ROS 차량은 관리자가 나중에 배정) |
 | vehicle_states | vehicle_id(PK/FK), state, soc, zone_id, pose_x, pose_y, pose_yaw, progress, charger_id, current_task_id, estimated_completion, last_seen_at, updated_at | 차량 실시간 상태(추가) |
-| charge_requests | id(UUID), vehicle_id, desired_finish_at, target_soc, min_soc, parking_zone_id(nullable, FK parking_zones, null=자동 배정), status, created_at, updated_at, cancel_requested_at, completed_at | 충전 요청과 조건, 요청 상태 |
+| charge_requests | id(UUID), vehicle_id, desired_finish_at, target_soc, min_soc, parking_zone_id(nullable, 이전 방식 칸 지정), parking_area(A·B·C, nullable, null=관제 자동), status, created_at, updated_at, cancel_requested_at, completed_at | 충전 요청과 조건, 요청 상태 |
 | vehicle_tasks | id(UUID), request_id, vehicle_id, type(MOVE_TO_CHARGER/MOVE_TO_PARKING), status, target_id, target_pose_x·y·yaw, progress, error_message, created_at, accepted_at, started_at, completed_at, updated_at | 차량 이동 작업(추가) |
 | charge_sessions | id(UUID), request_id, charger_id, start_at, end_at, start_soc, end_soc, energy_kwh, created_at | 충전 이력 |
 | chargers | id(TEXT, 예 CHARGER_01), name, max_power_kw, created_at, updated_at | 충전기 정의(관리자가 등록) |
@@ -334,7 +334,7 @@
 | 관리자 | GET/PATCH /admin/settings | 시스템 설정 | admin |
 | 실시간 | WS /ws/status | 상태 변경분 스트림 (JWT 인증은 5.5) | user/admin |
 
-- **API 스키마 결정**(코드는 `backend/schemas/`): `POST /charge-requests`는 `dry_run=true`이면 저장·발행 없이 가능 여부(feasibility)만 계산해 요청 화면 미리보기에 쓴다. `dry_run=false`에서 희망 완료 시각이 불가능하면 저장하지 않고 422 `DEADLINE_INFEASIBLE`을 돌려주며 가장 빠른 가능 시각을 담는다. 검사 순서는 차량 배정(422 `VEHICLE_NOT_ASSIGNED`), 위임 동의(403 `CONSENT_REQUIRED`), 진행 중 요청(409 `ACTIVE_REQUEST_EXISTS`), 시각 가능 여부 순이다. `PATCH /charge-requests/{id}`는 수정과 취소를 동시에 보낼 수 없고, 수정은 REQUESTED·ACCEPTED·SCHEDULED에서만 된다(그 밖은 409 `REQUEST_NOT_MODIFIABLE`). `GET /me/status`는 차량이 여러 대일 수 있어 `vehicles` 배열로 돌려주며 사용자 응답에는 `ros_vehicle_id`를 넣지 않고 `assigned`만 둔다. 5단계 진행 번호는 ASSIGNED·MOVING_TO_CHARGER·ARRIVED_AT_CHARGER=1, CHARGING=2, CHARGE_DONE=3, MOVING_TO_PARKING=4, PARKED=5이고 ARRIVED_AT_STATION·WAITING·FAULT는 단계가 없다. 사용자는 충전 요청 때 `parking_zone_id`로 주차 구역을 직접 고를 수 있고(비우면 관제가 자동 배정), 고른 구역은 PARKING 종류여야 한다. `GET /parking-zones`가 구역별 남은 자리(capacity − 주차 중 − 그 구역을 고른 진행 중 요청)를 돌려주며, 이미 선정된 구역을 고르면 409 `PARKING_ZONE_UNAVAILABLE`이다. 수정은 REQUESTED·ACCEPTED·SCHEDULED에서 구역 변경도 가능하다. 관리자 변경 API는 모두 `reason`이 필수이며 감사 로그에 남긴다.
+- **API 스키마 결정**(코드는 `backend/schemas/`): `POST /charge-requests`는 `dry_run=true`이면 저장·발행 없이 가능 여부(feasibility)만 계산해 요청 화면 미리보기에 쓴다. `dry_run=false`에서 희망 완료 시각이 불가능하면 저장하지 않고 422 `DEADLINE_INFEASIBLE`을 돌려주며 가장 빠른 가능 시각을 담는다. 검사 순서는 차량 배정(422 `VEHICLE_NOT_ASSIGNED`), 위임 동의(403 `CONSENT_REQUIRED`), 진행 중 요청(409 `ACTIVE_REQUEST_EXISTS`), 시각 가능 여부 순이다. `PATCH /charge-requests/{id}`는 수정과 취소를 동시에 보낼 수 없고, 수정은 REQUESTED·ACCEPTED·SCHEDULED에서만 된다(그 밖은 409 `REQUEST_NOT_MODIFIABLE`). `GET /me/status`는 차량이 여러 대일 수 있어 `vehicles` 배열로 돌려주며 사용자 응답에는 `ros_vehicle_id`를 넣지 않고 `assigned`만 둔다. 5단계 진행 번호는 ASSIGNED·MOVING_TO_CHARGER·ARRIVED_AT_CHARGER=1, CHARGING=2, CHARGE_DONE=3, MOVING_TO_PARKING=4, PARKED=5이고 ARRIVED_AT_STATION·WAITING·FAULT는 단계가 없다. 사용자는 충전 요청 때 `parking_area`(A·B·C)로 주차 구역을 고를 수 있고(비우면 관제가 자동), 칸은 관제가 고른다. `GET /parking-zones/areas`가 구역별 빈자리(빈 칸 − 다른 사용자가 그 구역을 고른 진행 중 요청)를 돌려주며, 빈자리가 없는 구역을 고르면 409 `PARKING_ZONE_UNAVAILABLE`이다. 수정은 REQUESTED·ACCEPTED·SCHEDULED에서 구역 변경도 가능하다. 관리자 변경 API는 모두 `reason`이 필수이며 감사 로그에 남긴다.
 
 ### 5.3 중앙관제(ROS 2) 연동
 
@@ -374,7 +374,7 @@
 - 차량 이동 관련 토픽 이름은 현재 구현(`/vehicle_task` 계열)을 그대로 쓴다.
 - `/vehicle_task`에는 목적지를 명시한다. 중앙관제가 `fleet_locations.yaml`에서 목표 좌표를 찾아 `target_id`와 `target_pose`를 함께 보내고, 차량은 받은 좌표로 이동만 한다. 예: `{"task_id":"<UUID>","request_id":"<UUID>","vehicle_id":"CAR_01","type":"MOVE_TO_PARKING","target_id":"PARKING_02","target_pose":{"x":12.3,"y":4.8,"yaw":1.57}}` (type은 MOVE_TO_CHARGER, MOVE_TO_PARKING). `request_id`로 작업과 충전 요청을 연결한다.
 - `/vehicle_task_status`는 `task_id`와 task 상태(`ACCEPTED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`)와 진행률을 보낸다.
-- 충전 요청 메시지 예: `{"request_id":"<UUID>","vehicle_id":"CAR_01","desired_finish_at":"2026-10-03T09:00:00Z","target_soc":80,"min_soc":60,"battery_kwh":60,"max_charge_kw":11,"parking_zone_id":"PARKING_02"}` (`parking_zone_id`는 사용자가 고른 구역이며 null이면 관제가 배정, `battery_kwh`·`max_charge_kw`는 스케줄러의 충전 시간 추정용). 같은 `request_id`로 다시 발행하면 요청 수정으로 보고 중앙관제가 덮어쓴다(수정 전용 토픽을 따로 두지 않는다).
+- 충전 요청 메시지 예: `{"request_id":"<UUID>","vehicle_id":"CAR_01","desired_finish_at":"2026-10-03T09:00:00Z","target_soc":80,"min_soc":60,"battery_kwh":60,"max_charge_kw":11,"parking_area":"B"}` (`parking_area`는 사용자가 고른 구역 A·B·C이며 칸은 관제가 고른다. null이면 관제가 배정, `battery_kwh`·`max_charge_kw`는 스케줄러의 충전 시간 추정용). 같은 `request_id`로 다시 발행하면 요청 수정으로 보고 중앙관제가 덮어쓴다(수정 전용 토픽을 따로 두지 않는다).
 - 그 밖의 메시지 규칙: `/emergency_stop`의 `vehicle_id`가 `ALL`이면 전체 대상이다. `/vehicle_task_status`는 FAILED일 때 `error_message`가 필수이고, `/vehicle_command`의 START_CHARGING은 `target_soc`가 필수이다. `/central_status`의 이벤트에는 중앙관제가 매기는 `event_id`가 있어 재수신해도 중복 저장하지 않는다.
 - 도메인 배치(확정 필요): 어느 노드·차량이 어느 `ROS_DOMAIN_ID`에 속하는지, Domain Bridge가 넘기는 토픽 목록은 `docs/AIOT_DOMAIN_CONFIG.md`에 정리하고 `domain_bridge` 설정 파일로 옮긴다. 차량이 늘어도 FastAPI·앱은 바뀌지 않도록 `vehicle_id`를 메시지에 담는다.
 - 구조(예상): FastAPI와 중앙관제가 같은 중앙 도메인이면 `/charging/request`와 `/central_status`는 Domain Bridge를 거치지 않는다. 중앙관제 ↔ 차량 구간(`/vehicle_task`, `/vehicle_task_status`, `/emergency_stop`, 차량 상태 토픽)만 Domain Bridge를 지난다. 실제 배치는 `docs/AIOT_DOMAIN_CONFIG.md`에서 확정한다.

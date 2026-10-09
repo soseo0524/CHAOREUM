@@ -73,7 +73,7 @@ def start():
     vid = vehicle()
     assign(vid, EV)
     client.post("/consents", headers=UH, json=dict(version="v1"))
-    r = client.post("/charge-requests", headers=UH, json=body(vid, min_soc=20, parking_zone_id="PARKING_05"))
+    r = client.post("/charge-requests", headers=UH, json=body(vid, min_soc=20, parking_area="B"))
     assert r.status_code == 201, r.text
     return r.json()["request"]["id"]
 
@@ -97,7 +97,10 @@ def test_ids_and_areas():
     assert our_zone_id("PARKING_5") == "PARKING_05" and our_zone_id("CHARGER_01") == "CHARGER_01" and our_zone_id(None) is None
     env = to_controller("/charging/request", json.dumps({"request_id": "r", "vehicle_id": EV, "desired_finish_at": "2026-10-09T08:00:00Z",
                                                          "target_soc": 80, "min_soc": 20, "parking_zone_id": "PARKING_05"}))
-    assert env["type"] == "charging_request" and env["payload"]["parking_zone_id"] == "B"  # 관제는 구역 단위
+    assert env["type"] == "charging_request" and env["payload"]["parking_zone_id"] == "B"  # 이전 방식(칸)도 구역으로 바꿔 보낸다
+    env = to_controller("/charging/request", json.dumps({"request_id": "r", "vehicle_id": EV, "desired_finish_at": "2026-10-09T08:00:00Z",
+                                                         "target_soc": 80, "min_soc": 20, "parking_area": "C"}))
+    assert env["payload"]["parking_zone_id"] == "C"  # 관제 게이트웨이가 preferred_parking_zone으로 넘긴다
     assert to_controller("/charging/cancel", json.dumps({"request_id": "r", "vehicle_id": EV}))["type"] == "charging_cancel"
     assert to_controller("/emergency_stop", json.dumps({"action": "STOP"})) is None
 

@@ -1,17 +1,14 @@
-// 02.02 전체 지도(손가락으로 확대·이동해서 구역 고르기) → 02.03 구역 안 맵(확대·이동하면서 자리 고르기)
-// 고른 자리의 zone_id(PARKING_nn)를 onPick으로 돌려준다. 자동 배정은 null.
-import { ChevronLeft, LogIn, Minus, Plus, X } from 'lucide-react-native';
+// 02.02 전체 지도(손가락으로 확대·이동해서 구역 고르기)
+// 사용자는 구역(A·B·C)만 고르고, 구역 안의 빈 칸은 관제가 고른다. 고른 구역을 onPick으로 돌려준다. 자동 배정은 null.
+import { LogIn, Minus, Plus, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, PanResponder, Pressable, View } from 'react-native';
+import { ActivityIndicator, Modal, PanResponder, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { C } from '@/constants/theme';
-import type { AreaDetail, AreaSummary, AreasOut } from '@/constants/types';
+import type { AreaSummary, AreasOut } from '@/constants/types';
 import { api } from '@/services/api';
 import { Button, T } from './ui';
-
-const CAR = require('@/assets/car-top.png');
-const CAR_RATIO = 377 / 869; // 가로/세로
 
 // ---- 전체 지도(02.02): 실제 주차장 구조. A(윗줄 17칸) / B(가운데 두 줄 13+13) / C(아랫줄 14칸)
 // 자리 박스는 구역 안 맵과 같은 비율(1 : 1.78), 구역 사이에는 차가 지나가는 길
@@ -34,14 +31,6 @@ const OV_ROWS: Record<string, [number, number][][]> = {
 };
 const SEAT_COLOR = { FREE: '#d1d1d6', TAKEN: '#3a3a3c', MINE: C.active } as const;
 
-// ---- 구역 안 맵(02.03): 자리 박스는 디자인 그대로 74×132, 모서리 12
-const SW = 74;
-const SH = 132;
-const SR = 12;
-const PITCH = 82;
-const PAD = 16;
-const ROW_GAP = 14; // B구역 두 줄 사이(가운데 벽)
-
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 type Tf = { x: number; y: number; s: number };
@@ -53,22 +42,18 @@ export function ParkingMap({
   onPick,
 }: {
   visible: boolean;
-  selected: string | null;
+  selected: string | null; // 이미 고른 구역(A·B·C)
   onClose: () => void;
-  onPick: (zoneId: string | null) => void;
+  onPick: (area: string | null) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [areas, setAreas] = useState<AreasOut | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<string | null>(null); // 전체 지도에서 눌러 둔 구역
-  const [areaId, setAreaId] = useState<string | null>(null); // 들어간 구역
-  const [seat, setSeat] = useState<string | null>(selected);
+  const [pending, setPending] = useState<string | null>(selected); // 지도에서 눌러 둔 구역
 
   useEffect(() => {
     if (!visible) return;
-    setAreaId(null);
-    setPending(null);
-    setSeat(selected);
+    setPending(selected);
     setError(null);
     setAreas(null);
     api
@@ -80,18 +65,9 @@ export function ParkingMap({
   const current = areas?.areas.find((a) => a.area_id === pending) ?? null;
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={areaId ? () => setAreaId(null) : onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: insets.top + 4, paddingBottom: Math.max(insets.bottom, 16) }}>
-        {areaId ? (
-          <AreaInside
-            areaId={areaId}
-            seat={seat}
-            onSeat={setSeat}
-            onBack={() => setAreaId(null)}
-            onConfirm={(z) => onPick(z)}
-          />
-        ) : (
-          <>
+        <>
             <View style={{ paddingHorizontal: 24, gap: 6, paddingBottom: 12 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <T style={{ color: C.sub, fontSize: 12, letterSpacing: 1 }}>주차 구역</T>
@@ -133,17 +109,16 @@ export function ParkingMap({
                   </T>
                 </View>
               ) : (
-                <T style={{ color: C.muted, fontSize: 13 }}>구역을 누르면 빈자리 수가 보여요.</T>
+                <T style={{ color: C.muted, fontSize: 13 }}>구역을 누르면 빈자리 수가 보여요. 자리는 관제가 정해요.</T>
               )}
               <Button
-                label="이 구역 들어가기"
+                label={current ? `${current.name}으로 할게요` : '구역을 골라 주세요'}
                 disabled={!current || current.state === 'FULL'}
-                onPress={() => current && setAreaId(current.area_id)}
+                onPress={() => current && onPick(current.area_id)}
               />
               <Button kind="ghost" label="자동 배정으로 두기" onPress={() => onPick(null)} />
             </View>
-          </>
-        )}
+        </>
       </View>
     </Modal>
   );
@@ -327,148 +302,3 @@ function AreaBlock({ a, on, onPress }: { a: AreaSummary; on: boolean; onPress: (
 }
 
 /** 구역 안 맵: 지도처럼 확대·이동. 빈자리는 비어 있고, 차 있는 자리에는 차가 있다. */
-function AreaInside({
-  areaId,
-  seat,
-  onSeat,
-  onBack,
-  onConfirm,
-}: {
-  areaId: string;
-  seat: string | null;
-  onSeat: (z: string) => void;
-  onBack: () => void;
-  onConfirm: (z: string) => void;
-}) {
-  const [d, setD] = useState<AreaDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .parkingArea(areaId, seat)
-      .then((r) => alive && setD(r))
-      .catch((e) => alive && setError(e.message));
-    return () => {
-      alive = false;
-    };
-  }, [areaId, seat]);
-
-  const chosen = d?.seats.find((s) => s.zone_id === seat) ?? null;
-  const bad = d?.selected_ok === false || chosen?.state === 'TAKEN';
-  const canConfirm = !!chosen && !bad;
-
-  // 판 크기와 처음 보이는 위치(고른 자리가 가운데, 원래 크기 그대로)
-  const rowTop = (row: number) => PAD + row * (SH + ROW_GAP);
-  const world = d ? { w: PAD * 2 + d.cols * PITCH - (PITCH - SW), h: PAD * 2 + d.rows * SH + (d.rows - 1) * ROW_GAP } : null;
-  const start = useRef<{ x: number; y: number } | null>(null);
-  if (d && !start.current) {
-    const s0 = d.seats.find((x) => x.zone_id === seat) ?? d.seats.find((x) => x.state === 'FREE') ?? d.seats[0];
-    start.current = { x: PAD + s0.col * PITCH + SW / 2, y: rowTop(s0.row) + SH / 2 };
-  }
-
-  return (
-    <>
-      <View style={{ paddingHorizontal: 24, gap: 6, paddingBottom: 14 }}>
-        <Pressable onPress={onBack} hitSlop={12} style={{ height: 32, justifyContent: 'center' }}>
-          <ChevronLeft size={22} color={C.text} />
-        </Pressable>
-        <T style={{ color: C.sub, fontSize: 12, letterSpacing: 1 }}>주차 자리</T>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <T style={{ fontSize: 28, letterSpacing: -1 }}>{d?.name ?? `${areaId}구역`}</T>
-          {d ? (
-            <T mono style={{ color: C.sub, fontSize: 13, paddingBottom: 4 }}>
-              빈자리 {d.free_count} / {d.seat_total}
-            </T>
-          ) : null}
-        </View>
-      </View>
-
-      <View style={{ flex: 1, marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: C.hero }}>
-        {d && world && start.current ? (
-          <PanZoom worldW={world.w} worldH={world.h} focus={{ ...start.current, s: 1 }} focusKey={areaId} minS={0.25} maxS={2}>
-            {d.seats.map((s) => (
-              <Seat
-                key={s.zone_id}
-                s={s}
-                x={PAD + s.col * PITCH}
-                y={rowTop(s.row)}
-                lower={s.row > 0}
-                on={seat === s.zone_id}
-                bad={seat === s.zone_id && bad}
-                onPress={() => onSeat(s.zone_id)}
-              />
-            ))}
-          </PanZoom>
-        ) : error ? (
-          <T style={{ color: C.error, fontSize: 13, padding: 24 }}>{error}</T>
-        ) : (
-          <ActivityIndicator color={C.text} style={{ marginTop: 80 }} />
-        )}
-      </View>
-
-      <View style={{ paddingHorizontal: 24, paddingTop: 14, gap: 10 }}>
-        <T style={{ color: bad ? C.error : chosen ? C.active : C.muted, fontSize: 13 }}>
-          {bad
-            ? '이미 선정된 자리예요. 다른 자리를 골라 주세요.'
-            : chosen
-              ? `${chosen.seat_no}번 자리를 골랐어요`
-              : '빈자리를 눌러서 골라 주세요. 확대·이동도 돼요.'}
-        </T>
-        <Button label="이 자리로 선택" disabled={!canConfirm} onPress={() => chosen && onConfirm(chosen.zone_id)} />
-      </View>
-    </>
-  );
-}
-
-/** 자리 박스(74×132, 모서리 12). 윗줄은 차가 위·번호가 아래, 아랫줄은 반대(디자인 그대로) */
-function Seat({
-  s,
-  x,
-  y,
-  lower,
-  on,
-  bad,
-  onPress,
-}: {
-  s: AreaDetail['seats'][number];
-  x: number;
-  y: number;
-  lower: boolean;
-  on: boolean;
-  bad: boolean;
-  onPress: () => void;
-}) {
-  const taken = s.state === 'TAKEN';
-  const mine = s.state === 'MINE';
-  const picked = on || mine;
-  const bg = bad ? '#ff3b30' : picked ? '#68D2C3' : taken ? '#262628' : '#cfcfd4';
-  const numColor = bad ? '#ffffff' : picked ? '#00302a' : taken ? '#8e8e93' : '#3a3a3c';
-  const showCar = taken || bad;
-  const carH = 92;
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{ position: 'absolute', left: x, top: y, width: SW, height: SH, borderRadius: SR, backgroundColor: bg }}
-    >
-      {showCar ? (
-        <Image
-          source={CAR}
-          resizeMode="contain"
-          style={{
-            position: 'absolute',
-            left: (SW - carH * CAR_RATIO) / 2,
-            top: lower ? SH - 10 - carH : 10,
-            width: carH * CAR_RATIO,
-            height: carH,
-            opacity: taken ? 0.85 : 1,
-            transform: lower ? [{ rotate: '180deg' }] : undefined,
-          }}
-        />
-      ) : null}
-      <T mono style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', top: lower ? 8 : 102, fontSize: 20, color: numColor }}>
-        {s.seat_no}
-      </T>
-    </Pressable>
-  );
-}

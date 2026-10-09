@@ -8,6 +8,7 @@ import type {
   MeStatus,
   NotificationItem,
   NotificationSettings,
+  ParkingArea,
   ParkingZone,
   Profile,
   Vehicle,
@@ -82,12 +83,12 @@ export const api = {
     desired_finish_at: string;
     target_soc: number;
     min_soc: number;
-    parking_zone_id?: string | null;
+    parking_area?: ParkingArea | null;
     dry_run?: boolean;
   }) => request<{ request: ChargeRequest | null; feasibility: Feasibility }>('POST', '/charge-requests', b),
   updateRequest: (
     id: string,
-    b: { desired_finish_at?: string; target_soc?: number; min_soc?: number; parking_zone_id?: string; cancel?: true },
+    b: { desired_finish_at?: string; target_soc?: number; min_soc?: number; parking_area?: ParkingArea; cancel?: true },
   ) => request<{ request: ChargeRequest; feasibility: Feasibility | null }>('PATCH', `/charge-requests/${id}`, b),
 };
 

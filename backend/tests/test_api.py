@@ -599,3 +599,26 @@ def test_auto_assign_on_register(monkeypatch):
     assert client.delete(f"/vehicles/{a['id']}", headers=UH).status_code == 200  # 삭제하면 ID가 풀린다
     st = client.get("/me/status", headers=UH).json()["vehicles"]
     assert [v["assigned"] for v in st] == [True, True] and {v.ros_vehicle_id for v in db_rows(m.Vehicle) if v.deleted_at is None} == {"EV-01", "EV-02"}
+
+
+def test_parking_area_selection():
+    vid = vehicle(); assign(vid)
+    client.post("/consents", headers=UH, json=dict(version="v1"))
+    assert client.post("/charge-requests", headers=UH, json=body(vid, parking_area="D")).status_code == 422  # A·B·C만
+    r = client.post("/charge-requests", headers=UH, json=body(vid, parking_area="B"))
+    assert r.status_code == 201 and r.json()["request"]["parking_area"] == "B"
+    assert ros.last("/charging/request")["parking_area"] == "B"
+    mine = {a["area_id"]: a for a in client.get("/parking-zones/areas", headers=UH).json()["areas"]}
+    assert mine["B"]["has_mine"] is True and mine["B"]["free_count"] == 26  # 내 화면에서는 내 요청을 빼지 않는다
+    other = uuid.uuid4(); oh = H(other, "user")
+    theirs = {a["area_id"]: a for a in client.get("/parking-zones/areas", headers=oh).json()["areas"]}
+    assert theirs["B"]["free_count"] == 25 and not theirs["B"]["has_mine"]  # 남의 요청이 한 자리를 잡는다
+    rid = r.json()["request"]["id"]
+    p = client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(parking_area="C"))
+    assert p.status_code == 200 and p.json()["request"]["parking_area"] == "C" and ros.last("/charging/request")["parking_area"] == "C"
+    with SessionLocal() as db:  # A구역을 가득 채우면 그 구역은 고를 수 없다
+        for n in sum(AREA_ROWS["A"], []):
+            db.get(m.ParkingZone, seat_zone_id(n)).capacity = 0
+        db.commit()
+    full = client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(parking_area="A"))
+    assert full.status_code == 409 and full.json()["code"] == "PARKING_ZONE_UNAVAILABLE"

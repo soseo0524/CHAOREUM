@@ -8,9 +8,9 @@ import { Alert, Modal, Pressable, View } from 'react-native';
 import { ParkingMap } from '@/components/parking-map';
 import { TimeWheelSheet } from '@/components/time-wheel-sheet';
 import { Button, Checkbox, Row, Screen, T, Title } from '@/components/ui';
-import { clockText, dayClock, zoneLabel } from '@/constants/format';
+import { areaLabel, clockText, dayClock } from '@/constants/format';
 import { C } from '@/constants/theme';
-import { CONSENT_VERSION, HomeState, type Feasibility } from '@/constants/types';
+import { CONSENT_VERSION, HomeState, type Feasibility, type ParkingArea } from '@/constants/types';
 import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 import { useAuth } from '@/services/auth';
@@ -34,12 +34,12 @@ export default function Request() {
   const [finish, setFinish] = useState(defaultFinish);
   const [target, setTarget] = useState(80);
   const [minSoc, setMinSoc] = useState(0);
-  const [zone, setZone] = useState<string | null>(null);
-  const params = useLocalSearchParams<{ zone?: string }>();
+  const [area, setArea] = useState<ParkingArea | null>(null);
+  const params = useLocalSearchParams<{ area?: string }>();
   // 홈의 '전체 구역 선택' 지도에서 고른 자리
   useEffect(() => {
-    if (params.zone) setZone(params.zone);
-  }, [params.zone]);
+    if (params.area === 'A' || params.area === 'B' || params.area === 'C') setArea(params.area);
+  }, [params.area]);
   const [agree, setAgree] = useState(false);
   const [feas, setFeas] = useState<Feasibility | null>(null);
   const [checking, setChecking] = useState(false);
@@ -54,7 +54,7 @@ export default function Request() {
     setFinish(new Date(active.desired_finish_at));
     setTarget(active.target_soc);
     setMinSoc(active.min_soc);
-    setZone(active.parking_zone_id);
+    setArea(active.parking_area);
   }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function Request() {
           desired_finish_at: finish.toISOString(),
           target_soc: target,
           min_soc: Math.min(minSoc, target),
-          parking_zone_id: zone,
+          parking_area: area,
           dry_run: true,
         });
         setFeas(r.feasibility);
@@ -83,7 +83,7 @@ export default function Request() {
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [v?.vehicle_id, v?.assigned, editing, finish.getTime(), target, minSoc, zone]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v?.vehicle_id, v?.assigned, editing, finish.getTime(), target, minSoc, area]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!v) {
     return (
@@ -140,7 +140,7 @@ export default function Request() {
           desired_finish_at: finish.toISOString(),
           target_soc: target,
           min_soc: Math.min(minSoc, target),
-          ...(zone && zone !== active.parking_zone_id ? { parking_zone_id: zone } : {}),
+          ...(area && area !== active.parking_area ? { parking_area: area } : {}),
         });
       } else {
         await api.createRequest({
@@ -148,7 +148,7 @@ export default function Request() {
           desired_finish_at: finish.toISOString(),
           target_soc: target,
           min_soc: Math.min(minSoc, target),
-          parking_zone_id: zone,
+          parking_area: area,
         });
       }
       await refresh();
@@ -243,7 +243,7 @@ export default function Request() {
       </Row>
       <Row label="주차 구역" onPress={() => setMapOpen(true)}>
         <T mono style={{ fontSize: 15 }}>
-          {zoneLabel(zone) ?? '자동 배정'}
+          {areaLabel(area) ?? '자동 배정'}
         </T>
         <T style={{ color: C.primaryText, fontSize: 13 }}>선택</T>
       </Row>
@@ -260,9 +260,9 @@ export default function Request() {
       {/* 02.02 전체 지도 → 02.03 구역 안 맵 */}
       <ParkingMap
         visible={mapOpen}
-        selected={zone}
+        selected={area}
         onClose={() => setMapOpen(false)}
-        onPick={(z) => (setZone(z), setMapOpen(false))}
+        onPick={(a) => (setArea(a as ParkingArea | null), setMapOpen(false))}
       />
 
       {/* 02.04 위임 동의 시트 */}

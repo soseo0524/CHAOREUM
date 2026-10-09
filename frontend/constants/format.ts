@@ -35,6 +35,11 @@ export function zoneLabel(id: string | null | undefined): string | null {
   return m ? `${Number(m[1])}번 구역` : null;
 }
 
+/** 'B' → 'B구역' */
+export function areaLabel(area: string | null | undefined): string | null {
+  return area ? `${area}구역` : null;
+}
+
 export function chargerNo(id: string | null | undefined): string | null {
   const m = id?.match(/(\d+)$/);
   return m ? `충전기 ${Number(m[1])}번` : null;

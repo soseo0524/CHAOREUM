@@ -7,11 +7,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import AwareDatetime, Field, model_validator
 
 from .common import ApiModel, ChargeRequestStatus, StrEnum
+
+ParkingArea = Literal["A", "B", "C"]
 
 
 class FeasibilityReason(StrEnum):
@@ -55,7 +58,8 @@ class ChargeRequestCreate(ApiModel):
     desired_finish_at: AwareDatetime
     target_soc: int = Field(80, ge=1, le=100)
     min_soc: int = Field(0, ge=0, le=100)
-    parking_zone_id: str | None = Field(None, description="고른 주차 구역 id(PARKING 종류). 비우면 자동 배정")
+    parking_zone_id: str | None = Field(None, description="(이전 방식) 고른 칸 id. 앱은 parking_area를 쓴다")
+    parking_area: ParkingArea | None = Field(None, description="고른 주차 구역 A·B·C. 구역 안의 빈 칸은 관제가 고른다. 비우면 관제 자동")
     dry_run: bool = Field(
         False, description="true면 저장·ROS 발행 없이 feasibility만 계산(U-03 미리보기)"
     )
@@ -75,6 +79,7 @@ class ChargeRequestOut(ApiModel):
     target_soc: int
     min_soc: int
     parking_zone_id: str | None = None
+    parking_area: str | None = None
     status: ChargeRequestStatus
     created_at: AwareDatetime
     updated_at: AwareDatetime
@@ -101,14 +106,15 @@ class ChargeRequestPatch(ApiModel):
     desired_finish_at: AwareDatetime | None = None
     target_soc: int | None = Field(None, ge=1, le=100)
     min_soc: int | None = Field(None, ge=0, le=100)
-    parking_zone_id: str | None = Field(None, description="주차 구역 변경(자동 배정으로 되돌리는 기능은 없음)")
+    parking_zone_id: str | None = Field(None, description="(이전 방식) 칸 변경")
+    parking_area: ParkingArea | None = Field(None, description="주차 구역(A·B·C) 변경(관제 자동으로 되돌리는 기능은 없음)")
     cancel: bool | None = Field(None, description="true면 취소 요청(→ CANCEL_REQUESTED)")
 
     @model_validator(mode="after")
     def _check(self):
         edits = {
             k: getattr(self, k)
-            for k in ("desired_finish_at", "target_soc", "min_soc", "parking_zone_id")
+            for k in ("desired_finish_at", "target_soc", "min_soc", "parking_zone_id", "parking_area")
             if getattr(self, k) is not None
         }
         if self.cancel is False:

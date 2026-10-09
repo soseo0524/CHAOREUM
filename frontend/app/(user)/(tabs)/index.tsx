@@ -20,7 +20,7 @@ import {
 import { Dialog } from '@/components/dialog';
 import { ParkingMap } from '@/components/parking-map';
 import { Button, EmptyHero, Screen, T, Title } from '@/components/ui';
-import { chargerNo, clock, clockText, monthDay, won, zoneLabel } from '@/constants/format';
+import { areaLabel, chargerNo, clock, clockText, monthDay, won, zoneLabel } from '@/constants/format';
 import { C } from '@/constants/theme';
 import { EtaState, HomeState, VehicleState, type VehicleStatus } from '@/constants/types';
 import { useStatus } from '@/hooks/useStatus';
@@ -37,7 +37,7 @@ const STEP_TITLES = ['충전소로 이동중', '충전중', '충전완료', '주
 
 function progressSteps(v: VehicleStatus): Step[] {
   const cur = v.step ?? 0;
-  const zone = zoneLabel(v.active_request?.parking_zone_id ?? v.zone_id);
+  const zone = areaLabel(v.active_request?.parking_area) ?? zoneLabel(v.zone_id);
   const subs = [
     chargerNo(v.charger_id) ? `${chargerNo(v.charger_id)}으로 이동` : undefined,
     chargerNo(v.charger_id) ?? undefined,
@@ -359,11 +359,11 @@ export default function Home() {
       {/* 전체 구역 지도. 요청 전이면 고른 자리로 충전 요청 화면을 연다 */}
       <ParkingMap
         visible={mapOpen}
-        selected={req?.parking_zone_id ?? null}
+        selected={req?.parking_area ?? null}
         onClose={() => setMapOpen(false)}
-        onPick={(z) => {
+        onPick={(a) => {
           setMapOpen(false);
-          if (!req && z) router.navigate({ pathname: '/request', params: { zone: z } });
+          if (!req && a) router.navigate({ pathname: '/request', params: { area: a } });
         }}
       />
     </Screen>

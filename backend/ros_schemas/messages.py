@@ -40,7 +40,8 @@ class ChargingRequestMsg(RosModel):
     min_soc: int = Field(0, ge=0, le=100)
     battery_kwh: float = Field(gt=0, description="충전 시간 추정용")
     max_charge_kw: float = Field(gt=0, description="충전 시간 추정용")
-    parking_zone_id: str | None = Field(None, pattern=ID_PATTERN, description="사용자가 고른 주차 구역. null이면 관제가 배정")
+    parking_zone_id: str | None = Field(None, pattern=ID_PATTERN, description="(이전 방식) 사용자가 고른 칸")
+    parking_area: Literal["A", "B", "C"] | None = Field(None, description="사용자가 고른 주차 구역. 구역 안의 칸은 관제가 고른다. null이면 관제가 구역도 고름")
 
     @model_validator(mode="after")
     def _soc(self):

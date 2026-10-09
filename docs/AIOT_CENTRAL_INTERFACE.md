@@ -50,7 +50,7 @@
 10. `/admin/command`(cancel/retry/reassign, 사유 포함)는 관리자 웹의 수동 조치이다.
 11. 충전기 점검 모드·출력 제한을 관제에 전달하는 방법은 **아직 정해지지 않았다**(열린 항목).
 12. `zone_id`·`charger_id`는 FastAPI DB의 `parking_zones`·`chargers` id와 같아야 한다. 모르는 id는 null로 저장된다. DB 값은 관제의 `fleet_locations.yaml`과 맞춰야 한다.
-13. `/charging/request`의 `parking_zone_id`는 사용자가 고른 주차 구역이다(PARKING 종류의 `zone_id`. `PARKING_nn`의 `nn`이 주차장 슬롯 번호다: 0~65 중 57칸, 12·14·27·30·31·34·35·39·44번 없음. A 17칸·B 26칸·C 14칸). 값이 있으면 `MOVE_TO_PARKING`의 목적지를 그 구역으로 하고, `null`이면 관제가 빈 구역을 배정한다. 그 구역이 막혔거나 쓸 수 없으면 요청을 실패시키지 말고 자동 배정으로 바꾼 뒤 `events[]`에 알려 주길 권장한다(대체 정책은 관제 담당과 합의). 같은 `request_id` 재발행으로 구역이 바뀔 수 있다.
+13. `/charging/request`의 **`parking_area`(A·B·C)가 사용자가 고른 주차 구역**이다. 사용자는 구역만 고르고, 그 구역 안의 빈 칸은 관제가 고른다. `null`이면 관제가 구역도 고른다. 같은 `request_id` 재발행으로 구역이 바뀔 수 있다. `parking_zone_id`(칸)는 이전 방식으로 앱은 더 이상 보내지 않는다. 실제로 주차한 칸은 `/central_status` 차량의 `zone_id`(`PARKING_nn`)로 알린다.
 
 ## 메시지 예시
 
@@ -66,7 +66,7 @@
   "min_soc": 60,
   "battery_kwh": 60.0,
   "max_charge_kw": 11.0,
-  "parking_zone_id": "PARKING_02"
+  "parking_area": "B"
 }
 ```
 

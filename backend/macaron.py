@@ -65,7 +65,8 @@ def to_controller(topic: str, data: str) -> dict | None:
     """우리 토픽 메시지 → 관제 게이트웨이 envelope. 관제가 받지 않는 토픽은 None."""
     d = json.loads(data)
     if topic == "/charging/request":
-        return {"type": "charging_request", "payload": {**d, "parking_zone_id": area_of_zone(d.get("parking_zone_id"))}}
+        area = d.get("parking_area") or area_of_zone(d.get("parking_zone_id"))  # 관제는 구역(A·B·C)만 받는다
+        return {"type": "charging_request", "payload": {**d, "parking_zone_id": area}}
     if topic == "/charging/cancel":
         return {"type": "charging_cancel", "payload": {"request_id": d["request_id"], "vehicle_id": d.get("vehicle_id")}}
     if topic == "/admin/command" and d.get("action") == "cancel" and d.get("request_id"):

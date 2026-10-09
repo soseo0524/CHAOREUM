@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import ForeignKey, Index, text
+from sqlalchemy import ForeignKey, Index, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -99,7 +99,8 @@ class ChargeRequest(Base):
     desired_finish_at: Mapped[datetime] = ts(nullable=False)
     target_soc: Mapped[int]
     min_soc: Mapped[int]
-    parking_zone_id: Mapped[str | None] = mapped_column(ForeignKey("parking_zones.id"))  # null=자동 배정
+    parking_zone_id: Mapped[str | None] = mapped_column(ForeignKey("parking_zones.id"))  # (이전 방식) 칸 지정
+    parking_area: Mapped[str | None] = mapped_column(String)  # A·B·C. null=관제 자동
     status: Mapped[c.ChargeRequestStatus] = mapped_column(pg_enum(c.ChargeRequestStatus, "charge_request_status_enum"), default=c.ChargeRequestStatus.REQUESTED)
     created_at: Mapped[datetime] = created()
     updated_at: Mapped[datetime] = created()

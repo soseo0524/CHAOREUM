@@ -59,6 +59,9 @@ export const FeasibilityReason = {
 } as const;
 export type FeasibilityReason = (typeof FeasibilityReason)[keyof typeof FeasibilityReason];
 
+/** 주차 구역. 사용자는 구역만 고르고 칸은 관제가 정한다 */
+export type ParkingArea = 'A' | 'B' | 'C';
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -88,6 +91,7 @@ export type ChargeRequest = {
   target_soc: number;
   min_soc: number;
   parking_zone_id: string | null;
+  parking_area: ParkingArea | null; // 사용자가 고른 구역. 실제 칸은 관제가 고른다(차량 zone_id)
   status: ChargeRequestStatus;
   created_at: string;
   updated_at: string;

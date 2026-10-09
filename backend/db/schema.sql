@@ -84,7 +84,8 @@ create table charge_requests (
     desired_finish_at timestamptz not null,    -- PARKED 도달을 희망하는 시각
     target_soc smallint not null check (target_soc between 1 and 100),
     min_soc smallint not null check (min_soc between 0 and 100),
-    parking_zone_id text references parking_zones(id),  -- 사용자가 고른 주차 구역(null=자동 배정)
+    parking_zone_id text references parking_zones(id),  -- (이전 방식) 사용자가 고른 칸. 앱은 parking_area를 쓴다
+    parking_area text check (parking_area in ('A', 'B', 'C')),  -- 사용자가 고른 주차 구역(null=관제 자동). 칸은 관제가 고른다
     status charge_request_status_enum not null default 'REQUESTED',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),

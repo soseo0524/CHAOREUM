@@ -382,12 +382,18 @@ def _seat_numbers(area_id: str) -> list[int]:
 def parking_areas(db: Session, user_id: UUID):
     from schemas.parking_map import AREA_ROWS, AreasOut, AreaState, AreaSummary, Seat, SeatState, seat_zone_id
     states, _ = _seat_states(db, user_id, None)
+    # 구역만 고른 활성 요청(아직 주차 전)은 그 구역의 빈자리 하나를 잡는다. 내 요청은 내 화면에서 has_mine으로 표시
+    active = (ChargeRequestStatus.REQUESTED, ChargeRequestStatus.ACCEPTED, ChargeRequestStatus.SCHEDULED, ChargeRequestStatus.IN_PROGRESS)
+    rows = db.execute(select(m.ChargeRequest.parking_area, m.Vehicle.owner_id).join(m.Vehicle, m.Vehicle.id == m.ChargeRequest.vehicle_id)
+                      .where(m.ChargeRequest.status.in_(active), m.ChargeRequest.parking_area.is_not(None))).all()
+    held = {a: sum(1 for x, o in rows if x == a and o != user_id) for a in AREA_ROWS}
+    mine_area = {x for x, o in rows if o == user_id}
     out = []
     for aid in AREA_ROWS:
         seats = [Seat(seat_no=n, zone_id=seat_zone_id(n), state=states.get(seat_zone_id(n), SeatState.TAKEN)) for n in _seat_numbers(aid)]
-        free = sum(1 for x in seats if x.state != SeatState.TAKEN)
+        free = max(sum(1 for x in seats if x.state != SeatState.TAKEN) - held[aid], 0)
         out.append(AreaSummary(area_id=aid, name=f"{aid}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
-                               has_mine=any(x.state == SeatState.MINE for x in seats), seats=seats))
+                               has_mine=aid in mine_area or any(x.state == SeatState.MINE for x in seats), seats=seats))
     return AreasOut(areas=out)
 
 
