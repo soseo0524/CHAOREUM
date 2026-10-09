@@ -33,12 +33,15 @@ const PROGRESS_TITLE: Partial<Record<HomeState, string>> = {
   [HomeState.MOVING_TO_PARKING]: '주차구역으로 이동 중',
   [HomeState.PARKED]: '주차가 끝났어요',
 };
-const STEP_TITLES = ['충전소로 이동중', '충전중', '충전완료', '주차구역으로 이동중', '주차완료'];
+// 진행 상황 목록은 어느 단계에서나 같다. 서버 step(1~5)은 '충전소로 이동중'부터라 한 칸 밀린다(요청 접수 = 대기 중)
+const STEP_TITLES = ['요청 접수', '충전소로 이동중', '충전중', '충전완료', '주차구역으로 이동중', '주차완료'];
+const LAST = STEP_TITLES.length;
 
-function progressSteps(v: VehicleStatus): Step[] {
-  const cur = v.step ?? 0;
+/** current: 지금 단계(1=요청 접수 … 6=주차완료). queueSub: 대기 중일 때 '요청 접수' 옆 설명 */
+function progressSteps(v: VehicleStatus, current = (v.step ?? 0) + 1, queueSub?: string): Step[] {
   const zone = areaLabel(v.active_request?.parking_area) ?? zoneLabel(v.zone_id);
   const subs = [
+    queueSub,
     chargerNo(v.charger_id) ? `${chargerNo(v.charger_id)}으로 이동` : undefined,
     chargerNo(v.charger_id) ?? undefined,
     '곧 주차구역으로 이동해요',
@@ -47,8 +50,8 @@ function progressSteps(v: VehicleStatus): Step[] {
   ];
   return STEP_TITLES.map((title, i) => {
     const n = i + 1;
-    // 주차 완료(5단계)는 도착 즉시 끝난 단계로 표시
-    const status = n < cur || (n === 5 && cur === 5) ? 'done' : n === cur ? 'current' : 'todo';
+    // 주차완료는 도착하는 순간 끝난 단계로 표시
+    const status = n < current || (n === LAST && current === LAST) ? 'done' : n === current ? 'current' : 'todo';
     return { title, status, sub: status === 'current' ? subs[i] : undefined };
   });
 }
@@ -224,17 +227,7 @@ export default function Home() {
       ]
         .filter(Boolean)
         .join(' · ');
-      body = (
-        <Steps
-          steps={[
-            { title: '요청 접수', status: 'done' },
-            { title: '충전 대기', status: 'current', sub: sub || undefined },
-            { title: '충전중', status: 'todo' },
-            { title: '주차구역으로 이동중', status: 'todo' },
-            { title: '주차완료', status: 'todo' },
-          ]}
-        />
-      );
+      body = <Steps steps={progressSteps(v, 1, sub || '충전 순서를 기다리는 중')} />;
       footer = (
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Button kind="outline" label="요청 수정" onPress={goRequest} style={{ flex: 1 }} />
@@ -259,7 +252,7 @@ export default function Home() {
     case HomeState.VEHICLE_OFFLINE:
       title = '차량 신호를 기다려요';
       titleColor = C.sub;
-      body = v.step ? <Steps steps={progressSteps(v)} /> : null;
+      body = req || v.step ? <Steps steps={progressSteps(v)} /> : null;
       if (req) footer = <Button kind="outline" label="충전 요청 취소" onPress={cancel} loading={busy} />;
       break;
     case HomeState.CANCELING: {
