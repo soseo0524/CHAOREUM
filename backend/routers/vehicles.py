@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,7 +11,9 @@ from database import get_db
 from deps import CurrentUser, require_user
 from errors import ApiError
 from schemas.common import ErrorCode, OkResponse
+from ros_schemas.messages import ChargingCancelMsg
 from schemas.vehicles import VehicleCreate, VehicleOut, VehicleUpdate
+from state import ros
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 
@@ -76,9 +79,19 @@ def patch_vehicle(vehicle_id: UUID, body: VehicleUpdate, u: CurrentUser = Depend
 
 @router.delete("/{vehicle_id}", response_model=OkResponse)
 def delete_vehicle(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
+    """차량과 그 차량의 요청·작업·충전 이력·이벤트를 DB에서 지운다. 진행 중인 요청이 있으면 관제에 취소를 먼저 보낸다."""
     v = _mine(db, vehicle_id, u)
-    if repo.active_request(db, v.id):
-        raise ApiError(409, ErrorCode.HAS_ACTIVE_WORK, "진행 중인 충전 요청이 있어 삭제할 수 없습니다.")
-    v.deleted_at = repo.now()
+    active = repo.active_request(db, v.id)
+    if active and v.ros_vehicle_id:  # 차가 움직이고 있을 수 있으니 관제에 취소 전달(삭제 후에도 관제는 처리)
+        ros.publish("/charging/cancel", ChargingCancelMsg(request_id=str(active.id), vehicle_id=v.ros_vehicle_id, requested_by="user"))
+    rids = select(m.ChargeRequest.id).where(m.ChargeRequest.vehicle_id == v.id)
+    tids = select(m.VehicleTask.id).where(m.VehicleTask.vehicle_id == v.id)
+    db.execute(delete(m.Event).where(or_(m.Event.vehicle_id == v.id, m.Event.request_id.in_(rids), m.Event.task_id.in_(tids))))
+    db.execute(delete(m.ChargeSession).where(m.ChargeSession.request_id.in_(rids)))
+    db.execute(delete(m.VehicleStateRow).where(m.VehicleStateRow.vehicle_id == v.id))
+    db.execute(update(m.ChargerStateRow).where(m.ChargerStateRow.assigned_vehicle_id == v.id).values(assigned_vehicle_id=None))
+    db.execute(delete(m.VehicleTask).where(m.VehicleTask.vehicle_id == v.id))
+    db.execute(delete(m.ChargeRequest).where(m.ChargeRequest.vehicle_id == v.id))
+    db.delete(v)
     db.commit()
     return OkResponse()

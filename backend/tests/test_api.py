@@ -93,7 +93,12 @@ def test_full_flow_publishes_ros_and_blocks_duplicate():
     # 취소
     c = client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(cancel=True))
     assert c.json()["request"]["status"] == "CANCEL_REQUESTED" and ros.last("/charging/cancel")["request_id"] == rid
-    assert client.delete(f"/vehicles/{vid}", headers=UH).status_code == 409  # 활성 요청 중 삭제 불가
+    # 진행 중인 요청이 있어도 삭제된다: 관제에 취소를 다시 보내고, 차량·요청을 DB에서 지운다
+    ros.published.clear()
+    assert client.delete(f"/vehicles/{vid}", headers=UH).status_code == 200
+    assert ros.last("/charging/cancel")["request_id"] == rid
+    assert not db_rows(m.Vehicle) and not db_rows(m.ChargeRequest)
+    assert client.get("/me/status", headers=UH).json()["empty_reason"] == "NO_VEHICLE"
 
 
 def test_infeasible_deadline():
@@ -622,3 +627,16 @@ def test_parking_area_selection():
         db.commit()
     full = client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(parking_area="A"))
     assert full.status_code == 409 and full.json()["code"] == "PARKING_ZONE_UNAVAILABLE"
+
+
+def test_delete_vehicle_with_history_removes_everything():
+    vid = vehicle(); assign(vid)
+    client.post("/consents", headers=UH, json=dict(version="v1"))
+    client.post("/charge-requests", headers=UH, json=body(vid))
+    assert client.post("/dev/simulate?step_s=0&wait=true", headers=UH).status_code == 200  # 작업·충전 이력·상태가 쌓인다
+    assert db_rows(m.ChargeSession) and db_rows(m.VehicleTask) and db_rows(m.VehicleStateRow)
+    client.post("/charge-requests", headers=UH, json=body(vid))  # 진행 중 요청도 하나 더
+    assert client.delete(f"/vehicles/{vid}", headers=UH).status_code == 200
+    for model in (m.Vehicle, m.ChargeRequest, m.ChargeSession, m.VehicleTask, m.VehicleStateRow):
+        assert not db_rows(model), model
+    assert all(c.assigned_vehicle_id is None for c in db_rows(m.ChargerStateRow))

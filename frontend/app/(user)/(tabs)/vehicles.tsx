@@ -74,7 +74,7 @@ export default function Vehicles() {
       <Dialog
         visible={!!target}
         title={`${target?.plate_no ?? ''}을 삭제할까요?`}
-        body="삭제하면 이 차량으로 충전을 요청할 수 없어요. 진행 중인 요청이 있으면 삭제할 수 없어요."
+        body="차량과 충전 이력이 모두 지워지고 되돌릴 수 없어요. 진행 중인 충전 요청이 있으면 함께 취소돼요."
         keepLabel="유지"
         confirmLabel="삭제"
         loading={busy}

@@ -48,6 +48,12 @@
         "projectId": "bbeff429-331b-44a8-9e1c-a8cb55c4d046"
       }
     },
-    "owner": "soseo"
+    "owner": "soseo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bbeff429-331b-44a8-9e1c-a8cb55c4d046"
+    }
   }
 }
