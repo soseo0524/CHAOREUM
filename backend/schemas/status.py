@@ -60,6 +60,7 @@ class EtaState(StrEnum):
 class Eta(ApiModel):
     state: EtaState
     at: AwareDatetime | None = Field(None, description="state=KNOWN일 때만")
+    approx: bool = Field(False, description="true면 관제 값이 없어 서버가 대략 계산한 시각(앱에서 '약'으로 표시)")
 
 
 class LastRequest(ApiModel):

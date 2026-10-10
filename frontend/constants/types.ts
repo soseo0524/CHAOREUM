@@ -119,7 +119,7 @@ export type VehicleStatus = {
   active_request: ChargeRequest | null;
   charge: ChargeInfo | null;
   home_state: HomeState;
-  eta: { state: EtaState; at: string | null };
+  eta: { state: EtaState; at: string | null; approx?: boolean }; // approx: 관제 값이 없어 서버가 대략 계산
   last_request: { id: string; status: ChargeRequestStatus; ended_at: string; failure_reason: string | null } | null;
   last_session: { ended_at: string; energy_kwh: number; cost_won: number; end_soc: number | null } | null;
   last_seen_at: string | null;

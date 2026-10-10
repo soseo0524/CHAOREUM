@@ -154,13 +154,44 @@ def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest |
     return HomeState.NO_REQUEST
 
 
-def eta_of(hs: HomeState, st: m.VehicleStateRow | None) -> Eta:
-    """값이 있으면 KNOWN, 진행 중인데 아직 없으면 '계산 중', 그 밖에는 '—'."""
+def eta_of(hs: HomeState, st: m.VehicleStateRow | None, db: Session | None = None, v: m.Vehicle | None = None,
+           ar: m.ChargeRequest | None = None) -> Eta:
+    """관제가 보낸 예상 완료 시각이 있으면 그것(KNOWN). 없으면 서버가 대략 계산(KNOWN, approx), 그것도 못 하면 '계산 중'.
+    진행 중이 아니면 '—'."""
     if hs in (HomeState.QUEUED, HomeState.MOVING_TO_CHARGER, HomeState.CHARGING, HomeState.CHARGE_DONE, HomeState.MOVING_TO_PARKING):
         if st is not None and st.estimated_completion is not None:
             return Eta(state=EtaState.KNOWN, at=st.estimated_completion)
+        at = _estimate_parked_at(db, hs, st, v, ar) if db is not None and v is not None and ar is not None else None
+        if at is not None:
+            return Eta(state=EtaState.KNOWN, at=at, approx=True)
         return Eta(state=EtaState.CALCULATING)
     return Eta(state=EtaState.NONE)
+
+
+def _estimate_parked_at(db: Session, hs: HomeState, st: m.VehicleStateRow | None, v: m.Vehicle, ar: m.ChargeRequest) -> datetime | None:
+    """관제가 예상 시각을 안 줄 때의 대략 계산. 단계마다 이미 끝난 부분은 뺀다.
+    예상 주차 완료 = 지금 + (대기) + (충전기까지 이동) + 남은 충전 + 주차구역 이동.
+    배터리 %를 모르면(관제 정보 없음) 계산하지 않는다."""
+    if st is None or st.soc is None:
+        return None
+    power = float(v.max_charge_kw)
+    cs = db.get(m.ChargerStateRow, st.charger_id) if st.charger_id else None
+    if cs is not None and cs.output_kw:  # 실제 충전기 출력이 더 낮으면 그 값으로
+        power = min(power, float(cs.output_kw))
+    charge_s = max(ar.target_soc - float(st.soc), 0) / 100 * float(v.battery_kwh) / power * 3600 if power > 0 else 0
+    move_c, move_p = settings.move_to_charger_s, settings.move_to_parking_s
+    if hs == HomeState.QUEUED:
+        wait_s = _with_queue(db, ar).estimated_wait_min or 0
+        secs = wait_s * 60 + move_c + charge_s + move_p
+    elif hs == HomeState.MOVING_TO_CHARGER:
+        secs = move_c * (1 - (st.progress or 0)) + charge_s + move_p
+    elif hs == HomeState.CHARGING:
+        secs = charge_s + move_p
+    elif hs == HomeState.CHARGE_DONE:
+        secs = move_p
+    else:  # MOVING_TO_PARKING
+        secs = move_p * (1 - (st.progress or 0))
+    return now() + timedelta(seconds=int(secs))
 
 
 def last_session(db: Session, v: m.Vehicle) -> LastSession | None:
@@ -185,7 +216,7 @@ def vehicle_status(db: Session, v: m.Vehicle) -> VehicleStatus:
     lr = None if ar else last_request(db, v)
     hs = home_state(v, st, ar, lr)
     return VehicleStatus(
-        home_state=hs, eta=eta_of(hs, st),
+        home_state=hs, eta=eta_of(hs, st, db, v, ar),
         last_request=LastRequest(id=lr.id, status=lr.status, ended_at=lr.updated_at, failure_reason=failure_reason(db, lr) if lr.status == ChargeRequestStatus.FAILED else None) if lr else None,
         last_session=last_session(db, v) if ar is None else None,
         vehicle_id=v.id, plate_no=v.plate_no, assigned=v.ros_vehicle_id is not None,

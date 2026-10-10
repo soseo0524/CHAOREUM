@@ -517,10 +517,13 @@ def test_home_state_covers_every_screen():
     central("CAR_01", "WAITING")
     v = hs()["vehicles"][0]
     assert v["home_state"] == "NO_REQUEST" and v["last_request"] is None
-    # 접수·대기(2-0b): 예상 시간 없으면 '계산 중'
+    # 접수·대기(2-0b): 관제가 예상 시간을 안 주면 서버가 대략 계산(approx). 배터리 %를 모르면 '계산 중'
     rid = client.post("/charge-requests", headers=UH, json=body(vid)).json()["request"]["id"]
     v = hs()["vehicles"][0]
-    assert v["home_state"] == "QUEUED" and v["eta"]["state"] == "CALCULATING"
+    assert v["home_state"] == "QUEUED" and v["eta"]["state"] == "KNOWN" and v["eta"]["approx"] is True
+    # soc 55% → 목표 80%, 60 kWh, 11 kW: 15 kWh ÷ 11 kW ≈ 82분 + 이동 1분 + 주차 이동 1분 (+대기 0) ≈ 84분
+    left = (datetime.fromisoformat(v["eta"]["at"]) - datetime.now(timezone.utc)).total_seconds()
+    assert 83 * 60 < left < 85 * 60, left
     # 진행 단계
     for state, want in [("MOVING_TO_CHARGER", "MOVING_TO_CHARGER"), ("CHARGING", "CHARGING"), ("CHARGE_DONE", "CHARGE_DONE"), ("MOVING_TO_PARKING", "MOVING_TO_PARKING")]:
         central("CAR_01", state, rid, "IN_PROGRESS")
@@ -531,7 +534,7 @@ def test_home_state_covers_every_screen():
     d = dict(at=iso(), vehicles=[dict(vehicle_id="CAR_01", state="CHARGING", soc=60, zone_id="CHARGE_01", last_seen_at=iso(), estimated_completion=fin)])
     ros.inject_central_status(json.dumps(d))
     v = hs()["vehicles"][0]
-    assert v["eta"]["state"] == "KNOWN" and v["eta"]["at"]
+    assert v["eta"]["state"] == "KNOWN" and v["eta"]["at"] and v["eta"]["approx"] is False  # 관제 값 우선
     # 연결 끊김(2-11): 마지막 값은 유지, last_seen_at 으로 시각 표시
     with SessionLocal() as db:
         st = db.get(m.VehicleStateRow, uuid.UUID(vid))

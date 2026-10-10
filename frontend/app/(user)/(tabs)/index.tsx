@@ -59,7 +59,7 @@ function progressSteps(v: VehicleStatus, current = (v.step ?? 0) + 1, queueSub?:
 function etaMetric(v: VehicleStatus, label = '예상 완료'): MetricItem {
   if (v.eta.state === EtaState.KNOWN && v.eta.at) {
     const c = clock(v.eta.at);
-    return { label, value: c.hm, unit: c.ap };
+    return { label: v.eta.approx ? `${label} (약)` : label, value: c.hm, unit: c.ap };
   }
   return { label, value: v.eta.state === EtaState.CALCULATING ? '계산 중' : '—' };
 }
