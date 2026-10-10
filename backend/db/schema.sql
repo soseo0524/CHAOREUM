@@ -91,6 +91,7 @@ create table charge_requests (
     updated_at timestamptz not null default now(),
     cancel_requested_at timestamptz,
     completed_at timestamptz,                  -- PARKED 도달 시각
+    progress_step smallint not null default 0 check (progress_step between 0 and 5),  -- 이 요청이 도달한 가장 높은 진행 단계(화면이 뒤로 가지 않게)
     constraint ck_charge_soc check (min_soc <= target_soc)
 );
 

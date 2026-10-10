@@ -106,6 +106,7 @@ class ChargeRequest(Base):
     updated_at: Mapped[datetime] = created()
     cancel_requested_at: Mapped[datetime | None] = ts()
     completed_at: Mapped[datetime | None] = ts()
+    progress_step: Mapped[int] = mapped_column(default=0)  # 도달한 가장 높은 진행 단계(1~5). 관제 신호가 흔들려도 뒤로 가지 않게
     __table_args__ = (
         Index("uq_one_active_charge_request_per_vehicle", "vehicle_id", unique=True, postgresql_where=text(_ACTIVE), sqlite_where=text(_ACTIVE)),
         Index("idx_charge_requests_vehicle", "vehicle_id"),

@@ -257,6 +257,33 @@ def _uuid(s: str | None) -> UUID | None:
     return UUID(s) if s else None
 
 
+# 진행 단계 → 그 단계를 대표하는 차량 상태(뒤로 가는 신호를 무시할 때 유지할 상태)
+_STEP_STATE = {1: VehicleState.MOVING_TO_CHARGER, 2: VehicleState.CHARGING, 3: VehicleState.CHARGE_DONE,
+               4: VehicleState.MOVING_TO_PARKING, 5: VehicleState.PARKED}
+
+
+def _no_backward(db: Session, v: m.Vehicle, state: VehicleState, finished: set[str]) -> VehicleState:
+    """진행 중인 요청은 이미 지난 단계로 돌아가지 않는다(관제 차량 신호가 이동 중↔서 있음으로 흔들릴 때).
+
+    요청마다 도달한 가장 높은 단계(progress_step)를 기억하고, 그보다 낮은 상태가 오면 그 단계의 상태를 유지한다.
+    차량 이상(FAULT)은 그대로 보여 준다. 취소·새 요청은 요청 상태나 새 행(0단계)으로 따로 처리된다.
+    """
+    ar = repo.active_request(db, v.id)
+    if ar is None or str(ar.id) in finished:  # 같은 메시지에서 요청이 끝났다고 왔으면 그대로(예: COMPLETED + PARKED)
+        return state
+    if state == VehicleState.FAULT or ar.status == ChargeRequestStatus.CANCEL_REQUESTED:
+        return state  # 취소 중에는 관제가 차를 옮기는 실제 상태를 그대로 보여 준다
+    if state == VehicleState.PARKED and ar.progress_step < 4:
+        # 주차구역 이동(4단계) 전의 PARKED는 '주차 완료'가 아니라 그냥 서 있는 것: 대기 중이면 대기, 진행 중이면 현재 단계 유지
+        return _STEP_STATE[ar.progress_step] if ar.progress_step else VehicleState.WAITING
+    step = STATE_TO_STEP.get(state, 0)
+    if step < ar.progress_step:
+        return _STEP_STATE[ar.progress_step]
+    if step > ar.progress_step:
+        ar.progress_step = step
+    return state
+
+
 def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: list | None = None) -> set[UUID]:
     """중앙관제 상태를 DB에 반영하고 변경된 차량 id 집합을 돌려준다(WS 방송용). 호출자가 commit한다.
 
@@ -296,6 +323,7 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         changed.add(v.id)
     db.flush()
 
+    finished = {it.request_id for it in msg.requests if it.status not in ACTIVE_REQUEST_STATUSES}
     for it in msg.vehicles:
         v = ros_to_v.get(it.vehicle_id)
         if not v:
@@ -303,7 +331,8 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         st = db.get(m.VehicleStateRow, v.id) or m.VehicleStateRow(vehicle_id=v.id)
         prev = st.state if st.state is not None else None
         tid = _uuid(it.current_task_id)
-        st.state, st.soc = it.state, round(it.soc)
+        state = _no_backward(db, v, it.state, finished)
+        st.state, st.soc = state, round(it.soc)
         st.zone_id = it.zone_id if it.zone_id in zones else None
         st.pose_x, st.pose_y, st.pose_yaw = (it.pose.x, it.pose.y, it.pose.yaw) if it.pose else (None, None, None)
         st.progress, st.estimated_completion = it.progress, it.estimated_completion
@@ -312,7 +341,7 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         st.last_seen_at, st.updated_at = it.last_seen_at or now(), now()
         db.merge(st)
         changed.add(v.id)
-        if prev != it.state:
+        if prev != state:
             _on_transition(db, v, st, prev, outbox)
 
     for it in msg.chargers:

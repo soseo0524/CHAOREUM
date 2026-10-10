@@ -640,3 +640,27 @@ def test_delete_vehicle_with_history_removes_everything():
     for model in (m.Vehicle, m.ChargeRequest, m.ChargeSession, m.VehicleTask, m.VehicleStateRow):
         assert not db_rows(model), model
     assert all(c.assigned_vehicle_id is None for c in db_rows(m.ChargerStateRow))
+
+
+def test_progress_never_goes_backward_on_flapping_vehicle_state():
+    vid = vehicle(); assign(vid)
+    client.post("/consents", headers=UH, json=dict(version="v1"))
+    rid = client.post("/charge-requests", headers=UH, json=body(vid)).json()["request"]["id"]
+    now = iso()
+
+    def send(state, status="IN_PROGRESS"):
+        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state=state, soc=40, last_seen_at=iso())],
+                                                  requests=[dict(request_id=rid, vehicle_id="CAR_01", status=status)])))
+        return client.get("/me/status", headers=UH).json()["vehicles"][0]
+
+    assert send("WAITING", "ACCEPTED")["home_state"] == "QUEUED"
+    assert send("MOVING_TO_CHARGER")["home_state"] == "MOVING_TO_CHARGER"
+    for _ in range(3):  # 관제 신호가 서 있음/이동 중으로 흔들려도 화면은 이동 중 유지
+        assert send("WAITING")["home_state"] == "MOVING_TO_CHARGER"
+        assert send("PARKED")["home_state"] == "MOVING_TO_CHARGER"
+    assert send("CHARGING")["home_state"] == "CHARGING"
+    assert send("MOVING_TO_CHARGER")["home_state"] == "CHARGING"  # 앞 단계로 돌아가지 않음
+    assert send("FAULT")["home_state"] == "FAULT"  # 차량 이상은 바로 보여 줌
+    assert send("CHARGE_DONE")["home_state"] == "CHARGE_DONE"
+    starts = [n for n in client.get("/me/notifications", headers=UH).json() if n["type"] == "CHARGE_STARTED"]
+    assert len(starts) <= 1  # 흔들림 때문에 알림이 여러 번 생기지 않음
