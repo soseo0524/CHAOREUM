@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "AIOT",
+    "name": "CHAOREUM",
     "slug": "aiot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chaoreum.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -16,7 +17,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.chaoreum.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +33,13 @@
     "backgroundColor": "#000000",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bbeff429-331b-44a8-9e1c-a8cb55c4d046"
+      }
+    },
+    "owner": "soseo"
   }
 }
