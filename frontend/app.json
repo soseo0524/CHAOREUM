@@ -27,7 +27,15 @@
       "expo-router",
       "expo-status-bar",
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#000000"
+        }
+      ]
     ],
     "scheme": "aiot",
     "backgroundColor": "#000000",
