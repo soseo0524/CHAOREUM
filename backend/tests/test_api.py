@@ -667,3 +667,22 @@ def test_progress_never_goes_backward_on_flapping_vehicle_state():
     assert send("CHARGE_DONE")["home_state"] == "CHARGE_DONE"
     starts = [n for n in client.get("/me/notifications", headers=UH).json() if n["type"] == "CHARGE_STARTED"]
     assert len(starts) <= 1  # 흔들림 때문에 알림이 여러 번 생기지 않음
+
+
+def test_waiting_zone_move_while_queued_does_not_count_as_progress():
+    vid = vehicle(); assign(vid)
+    client.post("/consents", headers=UH, json=dict(version="v1"))
+    rid = client.post("/charge-requests", headers=UH, json=body(vid)).json()["request"]["id"]
+
+    def send(state, status):
+        ros.inject_central_status(json.dumps(dict(at=iso(), vehicles=[dict(vehicle_id="CAR_01", state=state, soc=40, last_seen_at=iso())],
+                                                  requests=[dict(request_id=rid, vehicle_id="CAR_01", status=status)])))
+        return client.get("/me/status", headers=UH).json()["vehicles"][0]
+
+    # 대기 중에 관제가 대기 구역으로 옮기며 '주차구역으로 이동'을 보내도 화면은 대기
+    assert send("MOVING_TO_PARKING", "ACCEPTED")["home_state"] == "QUEUED"
+    assert send("PARKED", "ACCEPTED")["home_state"] == "QUEUED"
+    assert send("FAULT", "ACCEPTED")["home_state"] == "FAULT"
+    # 실제 진행이 시작되면 1단계부터 정상 진행
+    assert send("MOVING_TO_CHARGER", "IN_PROGRESS")["home_state"] == "MOVING_TO_CHARGER"
+    assert send("CHARGING", "IN_PROGRESS")["home_state"] == "CHARGING"

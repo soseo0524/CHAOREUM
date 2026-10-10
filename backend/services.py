@@ -293,17 +293,22 @@ _STEP_STATE = {1: VehicleState.MOVING_TO_CHARGER, 2: VehicleState.CHARGING, 3: V
                4: VehicleState.MOVING_TO_PARKING, 5: VehicleState.PARKED}
 
 
-def _no_backward(db: Session, v: m.Vehicle, state: VehicleState, finished: set[str]) -> VehicleState:
+def _no_backward(db: Session, v: m.Vehicle, state: VehicleState, msg_status: dict[str, ChargeRequestStatus]) -> VehicleState:
     """진행 중인 요청은 이미 지난 단계로 돌아가지 않는다(관제 차량 신호가 이동 중↔서 있음으로 흔들릴 때).
 
     요청마다 도달한 가장 높은 단계(progress_step)를 기억하고, 그보다 낮은 상태가 오면 그 단계의 상태를 유지한다.
     차량 이상(FAULT)은 그대로 보여 준다. 취소·새 요청은 요청 상태나 새 행(0단계)으로 따로 처리된다.
     """
     ar = repo.active_request(db, v.id)
-    if ar is None or str(ar.id) in finished:  # 같은 메시지에서 요청이 끝났다고 왔으면 그대로(예: COMPLETED + PARKED)
-        return state
+    now_status = msg_status.get(str(ar.id)) if ar else None  # 같은 메시지에 들어온 이 요청의 상태(없으면 None)
+    if ar is None or (now_status is not None and now_status not in ACTIVE_REQUEST_STATUSES):
+        return state  # 같은 메시지에서 요청이 끝났다고 왔으면 그대로(예: COMPLETED + PARKED)
     if state == VehicleState.FAULT or ar.status == ChargeRequestStatus.CANCEL_REQUESTED:
         return state  # 취소 중에는 관제가 차를 옮기는 실제 상태를 그대로 보여 준다
+    if now_status in _WAITING:
+        # 대기 중(접수·대기)에는 진행 단계를 쌓지 않는다. 관제가 대기 구역(WAIT)으로 옮기는 이동은 충전 진행이 아니다
+        ar.progress_step = 0
+        return VehicleState.WAITING
     if state == VehicleState.PARKED and ar.progress_step < 4:
         # 주차구역 이동(4단계) 전의 PARKED는 '주차 완료'가 아니라 그냥 서 있는 것: 대기 중이면 대기, 진행 중이면 현재 단계 유지
         return _STEP_STATE[ar.progress_step] if ar.progress_step else VehicleState.WAITING
@@ -354,7 +359,7 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         changed.add(v.id)
     db.flush()
 
-    finished = {it.request_id for it in msg.requests if it.status not in ACTIVE_REQUEST_STATUSES}
+    msg_status = {it.request_id: it.status for it in msg.requests}
     for it in msg.vehicles:
         v = ros_to_v.get(it.vehicle_id)
         if not v:
@@ -362,7 +367,7 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         st = db.get(m.VehicleStateRow, v.id) or m.VehicleStateRow(vehicle_id=v.id)
         prev = st.state if st.state is not None else None
         tid = _uuid(it.current_task_id)
-        state = _no_backward(db, v, it.state, finished)
+        state = _no_backward(db, v, it.state, msg_status)
         st.state, st.soc = state, round(it.soc)
         st.zone_id = it.zone_id if it.zone_id in zones else None
         st.pose_x, st.pose_y, st.pose_yaw = (it.pose.x, it.pose.y, it.pose.yaw) if it.pose else (None, None, None)
