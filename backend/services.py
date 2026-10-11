@@ -79,7 +79,8 @@ def notify_queue_changes(db: Session, before: list[UUID], outbox: list | None) -
 def _with_queue(db: Session, r: m.ChargeRequest) -> ChargeRequestOut:
     out = request_out(r)
     if r.status in (ChargeRequestStatus.REQUESTED, ChargeRequestStatus.ACCEPTED, ChargeRequestStatus.SCHEDULED):
-        ahead = max(queue_order(db).index(r.id) if r.id in queue_order(db) else 0, 0)
+        q = queue_order(db)  # 한 번만 읽는다: 두 번 읽는 사이 관제 상태 반영으로 대기열에서 빠지면 index()가 터진다
+        ahead = q.index(r.id) if r.id in q else 0
         out.queue_position, out.estimated_wait_min = ahead + 1, ahead * settings.avg_service_min
     return out
 
