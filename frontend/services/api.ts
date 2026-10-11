@@ -1,15 +1,14 @@
 // FastAPI 호출은 모두 이 파일에서만 한다. 앱은 DB에 직접 접근하지 않는다.
 import type {
-  AreaDetail,
   AreasOut,
   ChargeRequest,
   ChargeSession,
+  ExitInfo,
   Feasibility,
   MeStatus,
   NotificationItem,
   NotificationSettings,
   ParkingArea,
-  ParkingZone,
   Profile,
   Vehicle,
   WsMessage,
@@ -72,12 +71,10 @@ export const api = {
   updateVehicle: (id: string, b: { plate_no?: string; model?: string | null; battery_kwh?: number }) =>
     request<Vehicle>('PATCH', `/vehicles/${id}`, b),
   deleteVehicle: (id: string) => request('DELETE', `/vehicles/${id}`),
+  requestExit: (vehicleId: string) => request<ExitInfo>('POST', `/vehicles/${vehicleId}/exit`),
   createVehicle: (b: { plate_no: string; model?: string | null; battery_kwh: number; max_charge_kw: number }) =>
     request<Vehicle>('POST', '/vehicles', b),
   parkingAreas: () => request<AreasOut>('GET', '/parking-zones/areas'),
-  parkingArea: (areaId: string, selected?: string | null) =>
-    request<AreaDetail>('GET', `/parking-zones/areas/${areaId}${selected ? `?selected=${selected}` : ''}`),
-  parkingZones: () => request<ParkingZone[]>('GET', '/parking-zones'),
   createRequest: (b: {
     vehicle_id: string;
     desired_finish_at: string;

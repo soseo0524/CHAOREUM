@@ -10,6 +10,8 @@ export const VehicleState = {
   CHARGE_DONE: 'CHARGE_DONE',
   MOVING_TO_PARKING: 'MOVING_TO_PARKING',
   PARKED: 'PARKED',
+  MOVING_TO_EXIT: 'MOVING_TO_EXIT', // 출차: 출구로 이동 중
+  EXITED: 'EXITED', // 출차: 주차장을 나감
   FAULT: 'FAULT',
 } as const;
 export type VehicleState = (typeof VehicleState)[keyof typeof VehicleState];
@@ -41,8 +43,19 @@ export const HomeState = {
   REQUEST_FAILED: 'REQUEST_FAILED',
   FAULT: 'FAULT',
   VEHICLE_OFFLINE: 'VEHICLE_OFFLINE',
+  EXIT_REQUESTED: 'EXIT_REQUESTED', // 출차 접수
+  MOVING_TO_EXIT: 'MOVING_TO_EXIT', // 출구로 이동 중
+  EXITED: 'EXITED', // 출차 완료
 } as const;
 export type HomeState = (typeof HomeState)[keyof typeof HomeState];
+
+export const ExitStatus = {
+  REQUESTED: 'REQUESTED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const;
+export type ExitStatus = (typeof ExitStatus)[keyof typeof ExitStatus];
 
 export const EtaState = { KNOWN: 'KNOWN', CALCULATING: 'CALCULATING', NONE: 'NONE' } as const;
 export type EtaState = (typeof EtaState)[keyof typeof EtaState];
@@ -101,6 +114,18 @@ export type ChargeRequest = {
   estimated_wait_min: number | null;
 };
 
+/** 충전기가 모두 사용 중이라 관제가 다른 칸에 임시로 주차시킨 경우(대기 중일 때만) */
+export type WaitInfo = { zone_id: string; area: string | null; seat_no: number | null; arrived: boolean };
+export type ExitInfo = {
+  id: string;
+  status: ExitStatus;
+  created_at: string;
+  completed_at: string | null;
+  zone_id: string | null; // 관제가 정한 출차 칸(시연: C구역 빈 칸). 관제가 받기 전이면 null
+  area: string | null;
+  seat_no: number | null;
+};
+
 export type ChargeInfo = { energy_kwh: number; cost_won: number; unit_price_won: number; in_progress: boolean };
 
 export type VehicleStatus = {
@@ -124,6 +149,9 @@ export type VehicleStatus = {
   last_session: { ended_at: string; energy_kwh: number; cost_won: number; end_soc: number | null } | null;
   last_seen_at: string | null;
   updated_at: string | null;
+  wait: WaitInfo | null;
+  exit: ExitInfo | null;
+  can_exit: boolean; // 출차 버튼 표시 여부(서버 판정)
 };
 
 export type MeStatus = { server_time: string; vehicles: VehicleStatus[]; empty_reason: 'NO_VEHICLE' | null };
@@ -150,20 +178,6 @@ export type AreaSummary = {
   seats: AreaSeat[];
 };
 export type AreasOut = { areas: AreaSummary[] };
-export type AreaDetailSeat = AreaSeat & { row: number; col: number };
-export type AreaDetail = {
-  area_id: string;
-  name: string;
-  seat_total: number;
-  free_count: number;
-  state: AreaStateKind;
-  rows: number;
-  cols: number;
-  entrance: { row: number; col: number } | null; // 입구 칸 없음(항상 null)
-  seats: AreaDetailSeat[];
-  selected_zone_id: string | null;
-  selected_ok: boolean | null;
-};
 
 export type ChargeSession = {
   id: string;
@@ -191,7 +205,6 @@ export type NotificationItem = {
 
 export type NotificationSettings = { charge_done: boolean; parked: boolean; fault: boolean; queue_change: boolean };
 
-export type ParkingZone = { id: string; name: string; capacity: number; available: number; is_available: boolean };
 
 export type WsMessage =
   | { type: 'auth_ok'; role: AppRole }
@@ -200,5 +213,5 @@ export type WsMessage =
   | { type: 'notification'; data: NotificationItem }
   | { type: 'error'; code: string; message: string };
 
-/** 위임 동의 문구 버전(02.04 시트·위임 동의 화면) */
+/** 위임 동의 문구 버전(02.03 위임 동의 시트·화면) */
 export const CONSENT_VERSION = 'v1';

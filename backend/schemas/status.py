@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import AwareDatetime, Field
 
 from .charge_requests import ChargeRequestOut
-from .common import ApiModel, AppRole, ChargeRequestStatus, StrEnum, TaskStatus, TaskType, VehicleState
+from .common import ApiModel, AppRole, ChargeRequestStatus, ExitStatus, StrEnum, TaskStatus, TaskType, VehicleState
 
 
 STEP_LABELS = {
@@ -47,6 +47,9 @@ class HomeState(StrEnum):
     REQUEST_FAILED = "REQUEST_FAILED"  # 요청 실패(2-5)
     FAULT = "FAULT"  # 차량 문제(관제가 FAULT 보고)
     VEHICLE_OFFLINE = "VEHICLE_OFFLINE"  # 연결 끊김(2-11). 마지막 값은 그대로 내려가며 last_seen_at 으로 "n분 전" 표시
+    EXIT_REQUESTED = "EXIT_REQUESTED"  # 출차 접수(관제에 전달, 아직 출발 전)
+    MOVING_TO_EXIT = "MOVING_TO_EXIT"  # 출구로 이동 중
+    EXITED = "EXITED"  # 출차 완료(24시간 또는 새 충전 요청 전까지)
 
 
 class EtaState(StrEnum):
@@ -79,6 +82,27 @@ class LastSession(ApiModel):
     energy_kwh: float = Field(ge=0)
     cost_won: int = Field(ge=0)
     end_soc: int | None = None
+
+
+class WaitInfo(ApiModel):
+    """충전기가 모두 사용 중이라 다른 칸에 임시로 주차하고 기다릴 때(관제가 정함). 대기 중(QUEUED)일 때만."""
+
+    zone_id: str = Field(description="임시 대기 칸(예: PARKING_05)")
+    area: str | None = Field(None, description="그 칸이 속한 구역 A·B·C")
+    seat_no: int | None = Field(None, description="칸 번호(5)")
+    arrived: bool = Field(description="false면 그 칸으로 이동 중")
+
+
+class ExitInfo(ApiModel):
+    """진행 중이거나 막 끝난 출차."""
+
+    id: UUID
+    status: ExitStatus
+    created_at: AwareDatetime
+    completed_at: AwareDatetime | None = None
+    zone_id: str | None = Field(None, description="관제가 정한 출차 칸(예: PARKING_41). 관제가 받기 전이면 null")
+    area: str | None = Field(None, description="출차 칸의 구역(시연: C)")
+    seat_no: int | None = None
 
 
 class CurrentTask(ApiModel):
@@ -126,6 +150,9 @@ class VehicleStatus(ApiModel):
     last_session: LastSession | None = Field(None, description="활성 요청이 없을 때만. 마지막 충전 요약")
     last_seen_at: AwareDatetime | None = Field(None, description="오프라인 화면의 '마지막 수신 n분 전'")
     updated_at: AwareDatetime | None = None
+    wait: WaitInfo | None = Field(None, description="임시 대기 중이면 어느 칸인지(home_state=QUEUED일 때만)")
+    exit: ExitInfo | None = Field(None, description="출차 진행 중·완료 화면용")
+    can_exit: bool = Field(False, description="지금 출차 버튼을 보여도 되는지(충전 완료·주차 이동·주차 완료. 충전 중에는 false)")
 
 
 class MeStatusResponse(ApiModel):

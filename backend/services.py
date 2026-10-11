@@ -12,8 +12,8 @@ import repo
 from config import settings
 from ros_schemas.messages import CentralStatusMsg
 from schemas.charge_requests import ChargeRequestOut, Feasibility, FeasibilityReason, TimeBreakdown
-from schemas.common import ACTIVE_REQUEST_STATUSES, ChargeRequestStatus, ChargerState, TaskStatus, TaskType, VehicleState
-from schemas.status import ChargeInfo, CurrentTask, Eta, EtaState, HomeState, LastRequest, LastSession, Pose, STATE_TO_STEP, STEP_LABELS, VehicleStatus
+from schemas.common import ACTIVE_REQUEST_STATUSES, ChargeRequestStatus, ChargerState, ExitStatus, TaskStatus, TaskType, VehicleState
+from schemas.status import ChargeInfo, CurrentTask, Eta, EtaState, ExitInfo, HomeState, LastRequest, LastSession, Pose, STATE_TO_STEP, STEP_LABELS, VehicleStatus, WaitInfo
 
 now = repo.now
 
@@ -92,7 +92,9 @@ def cost_of(energy_kwh: float, unit_price_won: int | None) -> int:
     return round(energy_kwh * (settings.unit_price_won_per_kwh if unit_price_won is None else unit_price_won))
 
 
-_CHARGE_SHOWN = (VehicleState.CHARGING, VehicleState.CHARGE_DONE, VehicleState.MOVING_TO_PARKING, VehicleState.PARKED)
+_CHARGE_SHOWN = (VehicleState.CHARGING, VehicleState.CHARGE_DONE, VehicleState.MOVING_TO_PARKING, VehicleState.PARKED,
+                 VehicleState.MOVING_TO_EXIT, VehicleState.EXITED)
+_EXIT_STATES = (VehicleState.MOVING_TO_EXIT, VehicleState.EXITED)
 
 
 def charge_info(db: Session, v: m.Vehicle, st: m.VehicleStateRow | None) -> ChargeInfo | None:
@@ -122,13 +124,24 @@ def last_request(db: Session, v: m.Vehicle) -> m.ChargeRequest | None:
     return r
 
 
+def last_exit(db: Session, v: m.Vehicle) -> m.ExitRequest | None:
+    """24시간 안에 끝난(COMPLETED) 가장 최근 출차. 그 뒤에 새 충전 요청을 했으면 None(출차 완료 화면을 끝낸다)."""
+    ex = db.scalars(select(m.ExitRequest).where(m.ExitRequest.vehicle_id == v.id).order_by(m.ExitRequest.created_at.desc())).first()
+    if ex is None or ex.status != ExitStatus.COMPLETED or now() - (ex.completed_at or ex.updated_at) > RESULT_TTL:
+        return None
+    newer = db.scalar(select(func.count()).select_from(m.ChargeRequest).where(m.ChargeRequest.vehicle_id == v.id, m.ChargeRequest.created_at > ex.created_at))
+    return None if newer else ex
+
+
 def failure_reason(db: Session, r: m.ChargeRequest) -> str:
     t = db.scalars(select(m.VehicleTask).where(m.VehicleTask.request_id == r.id, m.VehicleTask.status == TaskStatus.FAILED, m.VehicleTask.error_message.is_not(None)).order_by(m.VehicleTask.updated_at.desc())).first()
     return (t.error_message if t and t.error_message else DEFAULT_FAIL_REASON)
 
 
-def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest | None, lr: m.ChargeRequest | None) -> HomeState:
-    """우선순위: 미배정 > 상태 없음 > 취소 처리 중 > 차량 문제 > 연결 끊김 > 진행 단계 > 직전 결과(실패·취소·완료) > 요청 없음."""
+def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest | None, lr: m.ChargeRequest | None,
+               ex: m.ExitRequest | None = None, le: m.ExitRequest | None = None) -> HomeState:
+    """우선순위: 미배정 > 상태 없음 > 취소 처리 중 > 차량 문제 > 연결 끊김 > 출차 진행 > 진행 단계 > 출차 완료
+    > 직전 결과(실패·취소·완료) > 요청 없음. ex=진행 중인 출차, le=막 끝난 출차."""
     if v.ros_vehicle_id is None:
         return HomeState.WAITING_ASSIGNMENT
     if st is None or st.state is None:
@@ -139,11 +152,19 @@ def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest |
         return HomeState.FAULT
     if not is_online(st):
         return HomeState.VEHICLE_OFFLINE
+    if ex:
+        return HomeState.MOVING_TO_EXIT if ex.status == ExitStatus.IN_PROGRESS or st.state == VehicleState.MOVING_TO_EXIT else HomeState.EXIT_REQUESTED
+    if st.state == VehicleState.MOVING_TO_EXIT:
+        return HomeState.MOVING_TO_EXIT
+    if st.state == VehicleState.EXITED and ar is None:
+        return HomeState.EXITED
     if ar:
         if st.state in _MOVING_1:
             return HomeState.MOVING_TO_CHARGER
         return {VehicleState.CHARGING: HomeState.CHARGING, VehicleState.CHARGE_DONE: HomeState.CHARGE_DONE,
                 VehicleState.MOVING_TO_PARKING: HomeState.MOVING_TO_PARKING, VehicleState.PARKED: HomeState.PARKED}.get(st.state, HomeState.QUEUED)
+    if le:
+        return HomeState.EXITED
     if lr:
         if lr.status == ChargeRequestStatus.FAILED:
             return HomeState.REQUEST_FAILED
@@ -194,6 +215,41 @@ def _estimate_parked_at(db: Session, hs: HomeState, st: m.VehicleStateRow | None
     return now() + timedelta(seconds=int(secs))
 
 
+_EXITABLE = (HomeState.CHARGE_DONE, HomeState.MOVING_TO_PARKING, HomeState.PARKED)  # 충전 중에는 출차 불가
+
+
+_IDLE_HOME = (HomeState.NO_REQUEST, HomeState.CANCELLED, HomeState.REQUEST_FAILED)  # 진행 중인 요청이 없는 화면
+
+
+def can_exit(hs: HomeState, st: m.VehicleStateRow | None) -> bool:
+    """출차 버튼: 충전 완료·주차구역 이동·주차 완료(충전 중에는 안 됨).
+    요청 없이(또는 취소·실패 뒤) 주차장에 서 있는 차(PARKED)도 나갈 수 있다."""
+    return hs in _EXITABLE or (hs in _IDLE_HOME and st is not None and st.state == VehicleState.PARKED)
+
+
+def _place(zone_id: str | None) -> tuple[str | None, int | None]:
+    """PARKING_05 → ('B', 5). 모르는 칸이면 (None, None)."""
+    from schemas.parking_map import AREA_ROWS, seat_no_of
+    n = seat_no_of(zone_id) if zone_id else None
+    area = next((a for a, rows in AREA_ROWS.items() for row in rows if n in row), None) if n is not None else None
+    return area, n
+
+
+def wait_info(ar: m.ChargeRequest | None) -> WaitInfo | None:
+    """관제가 정한 임시 대기 칸. PARKING_05 → B구역 5번."""
+    if ar is None or not ar.wait_zone_id:
+        return None
+    area, n = _place(ar.wait_zone_id)
+    return WaitInfo(zone_id=ar.wait_zone_id, area=area, seat_no=n, arrived=bool(ar.wait_arrived))
+
+
+def exit_info(ex: m.ExitRequest | None) -> ExitInfo | None:
+    if ex is None:
+        return None
+    area, n = _place(ex.exit_zone_id)
+    return ExitInfo(id=ex.id, status=ex.status, created_at=ex.created_at, completed_at=ex.completed_at, zone_id=ex.exit_zone_id, area=area, seat_no=n)
+
+
 def last_session(db: Session, v: m.Vehicle) -> LastSession | None:
     sess = db.scalar(select(m.ChargeSession).join(m.ChargeRequest, m.ChargeRequest.id == m.ChargeSession.request_id)
                      .where(m.ChargeRequest.vehicle_id == v.id, m.ChargeSession.end_at.is_not(None)).order_by(m.ChargeSession.end_at.desc()))
@@ -213,9 +269,13 @@ def vehicle_status(db: Session, v: m.Vehicle) -> VehicleStatus:
         t = db.get(m.VehicleTask, st.current_task_id)
         if t:
             task = CurrentTask(id=t.id, type=t.type, status=t.status, progress=t.progress)
+    ex = repo.active_exit(db, v.id)
+    le = None if ar or ex else last_exit(db, v)
     lr = None if ar else last_request(db, v)
-    hs = home_state(v, st, ar, lr)
+    hs = home_state(v, st, ar, lr, ex, le)
     return VehicleStatus(
+        wait=wait_info(ar) if hs == HomeState.QUEUED else None, can_exit=can_exit(hs, st),
+        exit=exit_info(ex or le),
         home_state=hs, eta=eta_of(hs, st, db, v, ar),
         last_request=LastRequest(id=lr.id, status=lr.status, ended_at=lr.updated_at, failure_reason=failure_reason(db, lr) if lr.status == ChargeRequestStatus.FAILED else None) if lr else None,
         last_session=last_session(db, v) if ar is None else None,
@@ -249,6 +309,46 @@ _NOTICE = {
     VehicleState.PARKED: ("PARKED", "parked", "주차가 끝났어요", "차량이 주차 구역에 도착했어요."),
     VehicleState.FAULT: ("FAULT", "fault", "차량에 문제가 생겼어요", "관리자가 확인하고 있어요."),
 }
+# 출차 결과 알림(주차 알림 설정을 따른다)
+_EXIT_NOTICE = {
+    ExitStatus.COMPLETED: ("EXITED", "parked", "출차가 끝났어요", "차량이 주차장을 나갔어요."),
+    ExitStatus.FAILED: ("EXIT_FAILED", "fault", "출차를 못 했어요", "차량이 출구로 가지 못했어요. 관제에 문의해 주세요."),
+}
+
+
+def _end_request_for_exit(db: Session, ex: m.ExitRequest) -> None:
+    """관제가 출차를 받으면 진행 중이던 충전 요청을 끝낸다(관제는 요청 상태를 그대로 둔다).
+    충전 중에는 출차할 수 없지만, 혹시 열린 충전 세션이 남아 있으면 지금 배터리로 닫는다."""
+    r = db.get(m.ChargeRequest, ex.charge_request_id) if ex.charge_request_id else None
+    if r is None or r.status not in ACTIVE_REQUEST_STATUSES:
+        return
+    r.status, r.updated_at = ChargeRequestStatus.CANCELLED, now()
+    sess = db.scalar(select(m.ChargeSession).where(m.ChargeSession.request_id == r.id, m.ChargeSession.end_at.is_(None)))
+    st = db.get(m.VehicleStateRow, ex.vehicle_id)
+    v = db.get(m.Vehicle, ex.vehicle_id)
+    if sess and st and v:
+        sess.end_at, sess.end_soc = now(), st.soc
+        sess.energy_kwh = round(max(st.soc - sess.start_soc, 0) / 100 * v.battery_kwh, 3)
+
+
+def set_exit_status(db: Session, ex: m.ExitRequest, status: ExitStatus, outbox: list | None, reason: str | None = None, zone: str | None = None) -> bool:
+    """출차 상태를 바꾸고 끝났으면(완료·실패) 알린다. 바뀌었으면 True. 끝난 출차는 다시 바꾸지 않는다."""
+    if zone:
+        ex.exit_zone_id = zone
+    if ex.status == status or ex.status in (ExitStatus.COMPLETED, ExitStatus.FAILED):
+        return False
+    ex.status, ex.updated_at = status, now()
+    if status in (ExitStatus.IN_PROGRESS, ExitStatus.COMPLETED):
+        _end_request_for_exit(db, ex)
+    if status in _EXIT_NOTICE:
+        ex.completed_at = now()
+        if status == ExitStatus.FAILED and reason:
+            ex.error_message = reason
+        v = db.get(m.Vehicle, ex.vehicle_id)
+        ntype, pref, title, body = _EXIT_NOTICE[status]
+        notice(db, v.owner_id if v else None, ntype, pref, title, reason if status == ExitStatus.FAILED and reason else body,
+               {"vehicle_id": str(ex.vehicle_id), "exit_id": str(ex.id)}, outbox)
+    return True
 
 
 def notice(db: Session, user_id: UUID | None, ntype: str, pref: str, title: str, body: str, data: dict, outbox: list | None) -> None:
@@ -263,7 +363,8 @@ def notice(db: Session, user_id: UUID | None, ntype: str, pref: str, title: str,
         outbox.append((n, on))
 
 
-def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbox: list | None) -> None:
+def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbox: list | None,
+                   msg_status: dict | None = None) -> None:
     ar = repo.active_request(db, v.id)
     # 충전 세션: CHARGING 진입 시 열고, 벗어나면 닫는다
     if st.state == VehicleState.CHARGING and st.charger_id and ar:
@@ -273,6 +374,12 @@ def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbo
         if sess:
             sess.end_at, sess.end_soc = now(), st.soc
             sess.energy_kwh = round(max(st.soc - sess.start_soc, 0) / 100 * v.battery_kwh, 3)
+    if st.state == VehicleState.PARKED:
+        # '주차 완료'는 충전 요청이 주차구역에 도착했을 때만: 주차 이동(4단계)까지 왔거나 같은 메시지에 COMPLETED가 옴.
+        # 요청 없이 서 있는 것(출차 뒤·취소 뒤·관제 재시작·신호 흔들림)은 알리지 않는다
+        done = ar is not None and (msg_status or {}).get(str(ar.id)) == ChargeRequestStatus.COMPLETED
+        if ar is None or ar.status == ChargeRequestStatus.CANCEL_REQUESTED or not (done or ar.progress_step >= 4):
+            return
     if st.state in _NOTICE:
         ntype, pref, title, body = _NOTICE[st.state]
         if st.state == VehicleState.PARKED and st.zone_id:
@@ -299,6 +406,8 @@ def _no_backward(db: Session, v: m.Vehicle, state: VehicleState, msg_status: dic
     요청마다 도달한 가장 높은 단계(progress_step)를 기억하고, 그보다 낮은 상태가 오면 그 단계의 상태를 유지한다.
     차량 이상(FAULT)은 그대로 보여 준다. 취소·새 요청은 요청 상태나 새 행(0단계)으로 따로 처리된다.
     """
+    if state in _EXIT_STATES or repo.active_exit(db, v.id):
+        return state  # 출차 중에는 충전 진행 단계와 상관없이 관제 상태를 그대로 보여 준다
     ar = repo.active_request(db, v.id)
     now_status = msg_status.get(str(ar.id)) if ar else None  # 같은 메시지에 들어온 이 요청의 상태(없으면 None)
     if ar is None or (now_status is not None and now_status not in ACTIVE_REQUEST_STATUSES):
@@ -378,7 +487,10 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         db.merge(st)
         changed.add(v.id)
         if prev != state:
-            _on_transition(db, v, st, prev, outbox)
+            _on_transition(db, v, st, prev, outbox, msg_status)
+        ex = repo.active_exit(db, v.id) if state in _EXIT_STATES else None
+        if ex:  # 관제가 출차 목록(exits)을 안 보내도 차량 상태로 진행을 맞춘다
+            set_exit_status(db, ex, ExitStatus.COMPLETED if state == VehicleState.EXITED else ExitStatus.IN_PROGRESS, outbox)
 
     for it in msg.chargers:
         if it.charger_id not in chargers:
@@ -391,6 +503,11 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
 
     for it in msg.requests:
         r = db.get(m.ChargeRequest, UUID(it.request_id))
+        if r and "wait_zone_id" in it.model_fields_set and (r.wait_zone_id, r.wait_arrived) != (it.wait_zone_id, bool(it.wait_arrived)):
+            r.wait_zone_id, r.wait_arrived = (it.wait_zone_id if it.wait_zone_id in zones else None), bool(it.wait_arrived) and it.wait_zone_id in zones
+            changed.add(r.vehicle_id)
+        if r and r.status not in ACTIVE_REQUEST_STATUSES and it.status in ACTIVE_REQUEST_STATUSES:
+            continue  # 끝난 요청은 되살리지 않는다(출차로 서버가 끝낸 요청을 관제는 계속 진행 중으로 보냄)
         if r and r.status != it.status:
             r.status, r.updated_at = it.status, now()
             if it.status == ChargeRequestStatus.COMPLETED:
@@ -399,6 +516,12 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
                 rv = db.get(m.Vehicle, r.vehicle_id)
                 notice(db, rv.owner_id if rv else None, "REQUEST_FAILED", "fault", "충전 요청이 실패했어요", failure_reason(db, r), {"request_id": str(r.id)}, outbox)
             changed.add(r.vehicle_id)
+
+    for it in msg.exits:
+        ex = db.get(m.ExitRequest, UUID(it.exit_id))
+        v = ros_to_v.get(it.vehicle_id)
+        if ex and v and ex.vehicle_id == v.id and set_exit_status(db, ex, it.status, outbox, it.reason, it.exit_zone_id):
+            changed.add(v.id)
 
     seen = set(db.scalars(select(m.Event.source_event_id).where(m.Event.source_event_id.in_([e.event_id for e in msg.events]))))
     for e in msg.events:
@@ -413,9 +536,9 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
     return changed
 
 
-# ---------- 주차 구역 지도(02.02 전체 지도, 02.03 구역 안 맵) ----------
-def _seat_states(db: Session, user_id: UUID, selected: str | None) -> tuple[dict[str, str], dict[str, int]]:
-    """모든 자리의 (zone_id → 상태), (zone_id → 남은 자리). 내 자리·고르는 중인 자리는 MINE, 남이 잡았으면 TAKEN."""
+# ---------- 주차 구역 지도(02.02 전체 지도) ----------
+def _seat_states(db: Session, user_id: UUID) -> dict[str, str]:
+    """모든 자리의 zone_id → 상태. 내 자리는 MINE, 차 있음·남이 잡았으면 TAKEN."""
     from schemas.parking_map import SeatState
     avail = {z.id: a for z, a in zone_availability(db)}  # 0 = 차 있음/남이 선정
     mine: set[str] = set()
@@ -432,11 +555,9 @@ def _seat_states(db: Session, user_id: UUID, selected: str | None) -> tuple[dict
             out[zid] = SeatState.MINE
         elif a <= 0:
             out[zid] = SeatState.TAKEN
-        elif selected == zid:
-            out[zid] = SeatState.MINE  # 지금 고르는 중인 자리
         else:
             out[zid] = SeatState.FREE
-    return out, avail
+    return out
 
 
 def _seat_numbers(area_id: str) -> list[int]:
@@ -446,7 +567,7 @@ def _seat_numbers(area_id: str) -> list[int]:
 
 def parking_areas(db: Session, user_id: UUID):
     from schemas.parking_map import AREA_ROWS, AreasOut, AreaState, AreaSummary, Seat, SeatState, seat_zone_id
-    states, _ = _seat_states(db, user_id, None)
+    states = _seat_states(db, user_id)
     # 구역만 고른 활성 요청(아직 주차 전)은 그 구역의 빈자리 하나를 잡는다. 내 요청은 내 화면에서 has_mine으로 표시
     active = (ChargeRequestStatus.REQUESTED, ChargeRequestStatus.ACCEPTED, ChargeRequestStatus.SCHEDULED, ChargeRequestStatus.IN_PROGRESS)
     rows = db.execute(select(m.ChargeRequest.parking_area, m.Vehicle.owner_id).join(m.Vehicle, m.Vehicle.id == m.ChargeRequest.vehicle_id)
@@ -460,23 +581,3 @@ def parking_areas(db: Session, user_id: UUID):
         out.append(AreaSummary(area_id=aid, name=f"{aid}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
                                has_mine=aid in mine_area or any(x.state == SeatState.MINE for x in seats), seats=seats))
     return AreasOut(areas=out)
-
-
-def parking_area_detail(db: Session, user_id: UUID, area_id: str, selected: str | None):
-    from schemas.parking_map import AREA_ROWS, AreaDetailOut, AreaState, DetailSeat, SeatState, seat_zone_id
-    area_id = area_id.upper()
-    if area_id not in AREA_ROWS:
-        return None
-    states, avail = _seat_states(db, user_id, selected)
-    seats = []
-    for row, numbers in enumerate(AREA_ROWS[area_id]):
-        for col, n in enumerate(numbers):
-            zid = seat_zone_id(n)
-            seats.append(DetailSeat(seat_no=n, zone_id=zid, state=states.get(zid, SeatState.TAKEN), row=row, col=col))
-    free = sum(1 for x in seats if x.state != SeatState.TAKEN)
-    sel_ok = None
-    if selected:
-        sel_ok = states.get(selected) in (SeatState.MINE, SeatState.FREE)
-    return AreaDetailOut(area_id=area_id, name=f"{area_id}구역", seat_total=len(seats), free_count=free, state=AreaState.OPEN if free else AreaState.FULL,
-                         rows=len(AREA_ROWS[area_id]), cols=max(len(r) for r in AREA_ROWS[area_id]), entrance=None,
-                         seats=seats, selected_zone_id=selected, selected_ok=sel_ok)

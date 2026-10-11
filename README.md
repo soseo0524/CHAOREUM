@@ -13,17 +13,16 @@
 | API 스키마, ROS JSON 계약 | 완료 |
 | FastAPI + SQLAlchemy + Alembic | 완료. 개발용 SQLite 테스트 49개 통과 |
 | Supabase 연결 | 진행 중. 프로젝트 생성·`.env` 작성·`alembic upgrade head`/`seed.py` 실행(터미널에서 직접). 가입 시 `profiles` 자동 생성 트리거와 JWT 관리자 권한 훅을 `schema.sql`에 추가. 대시보드에서 훅 켜기와 로그인 실물 확인은 남음 |
-| Expo 앱 화면 | 예정 |
-| 실제 ROS2 관제 연동 | 개발용 시뮬레이터만 검증. 게이트웨이 스크립트는 ROS2에서 미시험 |
+| Expo 앱 화면 | 완료. Android APK(EAS Build)·EAS Update 배포 |
+| 실제 ROS2 관제 연동 | 관제 담당 게이트웨이(macaron8)로 Railway 서버와 연동 |
 
 ## 폴더 구조
 
 ```
 backend/   FastAPI 서버 (routers/, services.py, models.py, schemas/, ros_schemas/, alembic/, tests/)
-gateway/   관제 PC에서 서버로 연결하는 ROS 게이트웨이 스크립트
-docs/      기능 명세, 관제 인터페이스, 도메인 설정
+frontend/  Expo 사용자 앱
+docs/      기능 명세, 관제 인터페이스, 관리자 웹 API, 도메인 설정
 design/    화면 디자인 (aiot-user-app.pen, Pencil로 열기)
-app/       Expo 사용자 앱 (예정)
 ```
 
 ## 백엔드 실행

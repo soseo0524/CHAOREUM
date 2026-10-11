@@ -40,9 +40,7 @@ class GatewayRosBridge:
     """관제 PC가 서버로 먼저 WebSocket(/ws/gateway)을 연결해 두고, 서버가 그 선으로 토픽을 주고받는다.
 
     관제가 노트북·집 네트워크에 있어 서버가 접속할 수 없을 때 쓴다(관제 → 서버 방향 연결만 필요).
-    게이트웨이 종류(연결할 때 정해진다):
-      - "aiot"   : gateway/ros_gateway_client.py. 첫 메시지 auth. {"topic": "/charging/request", "data": "<JSON 문자열>"}
-      - "macaron": 관제 담당 게이트웨이. Authorization 헤더. {"type": "charging_request", "payload": {...}} (macaron.py에서 번역)
+    관제 담당 게이트웨이(macaron8)가 Authorization 헤더로 붙고 {"type": ..., "payload": {...}}로 주고받는다(macaron.py에서 번역).
     게이트웨이가 끊겨 있는 동안 서버가 보낸 메시지는 최근 500개까지 모아 두었다가 다시 연결되면 보낸다.
     """
 
@@ -51,8 +49,8 @@ class GatewayRosBridge:
 
         self.pending: deque[tuple[str, str]] = deque(maxlen=500)  # (topic, JSON 문자열)
         self.connected = False
-        self.protocol = "aiot"
         self.vehicle_of: dict[str, str] = {}  # request_id → ros vehicle_id (관제 거절 응답을 요청에 붙이려고)
+        self.exit_of: dict[str, str] = {}  # ros vehicle_id → 최근 출차 exit_id (관제 출차는 vehicle_id로만 오간다)
         self.cancel_sent: dict[str, float] = {}  # 관제에 취소를 보낸 요청 → 보낸 시각(관제가 모르는 요청이면 취소 완료 처리)
         self._ws = None
         self._loop = None
@@ -63,6 +61,8 @@ class GatewayRosBridge:
         rid, vid = getattr(msg, "request_id", None), getattr(msg, "vehicle_id", None)
         if rid and vid:
             self.vehicle_of[str(rid)] = vid
+        if topic == "/vehicle/exit" and vid:
+            self.exit_of[vid] = str(msg.exit_id)
         if topic == "/charging/cancel" and rid:
             import time
 
@@ -77,12 +77,10 @@ class GatewayRosBridge:
     def _wire(self, topic: str, data: str) -> str | None:
         import json
 
-        if self.protocol == "macaron":
-            from macaron import to_controller
+        from macaron import to_controller
 
-            env = to_controller(topic, data)
-            return json.dumps(env, ensure_ascii=False) if env else None  # 관제 미지원 토픽은 버린다
-        return json.dumps({"topic": topic, "data": data}, ensure_ascii=False)
+        env = to_controller(topic, data)
+        return json.dumps(env, ensure_ascii=False) if env else None  # 관제 미지원 토픽은 버린다
 
     def _send(self, topic: str, data: str) -> bool:
         import asyncio
@@ -94,8 +92,8 @@ class GatewayRosBridge:
             asyncio.run_coroutine_threadsafe(self._ws.send_text(item), self._loop)
         return True
 
-    async def attach(self, ws, loop, protocol: str = "aiot") -> None:
-        self._ws, self._loop, self.connected, self.protocol = ws, loop, True, protocol
+    async def attach(self, ws, loop) -> None:
+        self._ws, self._loop, self.connected = ws, loop, True
         while self.pending:  # 끊겨 있던 동안 쌓인 것 먼저 전달
             item = self._wire(*self.pending.popleft())
             if item is not None:
@@ -127,21 +125,18 @@ class GatewayRosBridge:
         d = json.loads(raw)
         if not self._cb:
             return
-        if self.protocol == "macaron":
-            from macaron import failure_from_result, status_from_controller
+        from macaron import exit_result, failure_from_result, status_from_controller
 
-            if d.get("type") == "central_status":
-                payload = d.get("payload") or {}
-                msg = status_from_controller(payload)
-                self._finish_unknown_cancels(payload, msg)
+        if d.get("type") == "central_status":
+            payload = d.get("payload") or {}
+            msg = status_from_controller(payload, self.exit_of)
+            self._finish_unknown_cancels(payload, msg)
+            self._cb(parse_topic("/central_status", json.dumps(msg)))
+        elif d.get("type") == "request_result":
+            is_exit = (d.get("payload") or {}).get("operation") == "EXIT" or (not d.get("request_id") and d.get("vehicle_id"))
+            msg = exit_result(d, self.exit_of) if is_exit else failure_from_result(d, self.vehicle_of)
+            if msg:
                 self._cb(parse_topic("/central_status", json.dumps(msg)))
-            elif d.get("type") == "request_result":
-                msg = failure_from_result(d, self.vehicle_of)
-                if msg:
-                    self._cb(parse_topic("/central_status", json.dumps(msg)))
-            return
-        if d.get("topic") == "/central_status":  # 그 밖의 토픽은 무시
-            self._cb(parse_topic("/central_status", d["data"]))
 
 
 class RclpyBridge:  # ROS 2 노드 연결 단계에서 구현 (rclpy: ROS 터미널 환경에서만 import)

@@ -8,7 +8,7 @@ import { C } from '@/constants/theme';
 import { api } from '@/services/api';
 import { T, Wordmark } from './ui';
 
-/** 로고 + 알림함(08.01) 버튼. 안 읽은 알림이 있으면 점을 찍는다 */
+/** 로고 + 알림함(09.01) 버튼. 안 읽은 알림이 있으면 점을 찍는다 */
 export function TopBar() {
   const [unread, setUnread] = useState(false);
   useFocusEffect(

@@ -1,4 +1,4 @@
-// 09.03 새 비밀번호 입력 → 09.04 비밀번호 변경 완료
+// 01-A.03 새 비밀번호 입력 → 01-A.04 비밀번호 변경 완료
 // 재설정 메일 링크가 '<앱 주소>/reset-password#access_token=…&refresh_token=…&type=recovery'로 앱을 연다.
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';

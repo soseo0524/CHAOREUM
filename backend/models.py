@@ -107,11 +107,35 @@ class ChargeRequest(Base):
     cancel_requested_at: Mapped[datetime | None] = ts()
     completed_at: Mapped[datetime | None] = ts()
     progress_step: Mapped[int] = mapped_column(default=0)  # 도달한 가장 높은 진행 단계(1~5). 관제 신호가 흔들려도 뒤로 가지 않게
+    wait_zone_id: Mapped[str | None]  # 충전기가 모두 사용 중일 때의 임시 대기 칸(관제가 정함)
+    wait_arrived: Mapped[bool] = mapped_column(default=False)
     __table_args__ = (
         Index("uq_one_active_charge_request_per_vehicle", "vehicle_id", unique=True, postgresql_where=text(_ACTIVE), sqlite_where=text(_ACTIVE)),
         Index("idx_charge_requests_vehicle", "vehicle_id"),
         Index("idx_charge_requests_status", "status"),
         Index("idx_charge_requests_finish", "desired_finish_at"),
+    )
+
+
+_ACTIVE_EXIT = "status in ('REQUESTED','IN_PROGRESS')"
+
+
+class ExitRequest(Base):
+    """출차 요청. 충전 완료·주차 이동·주차 완료에서 사용자가 누르면 차량이 출구 구역으로 간다."""
+
+    __tablename__ = "exit_requests"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    vehicle_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("vehicles.id", ondelete="CASCADE"))
+    charge_request_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("charge_requests.id", ondelete="SET NULL"))
+    status: Mapped[c.ExitStatus] = mapped_column(pg_enum(c.ExitStatus, "exit_status_enum"), default=c.ExitStatus.REQUESTED)
+    exit_zone_id: Mapped[str | None]
+    error_message: Mapped[str | None]
+    created_at: Mapped[datetime] = created()
+    updated_at: Mapped[datetime] = created()
+    completed_at: Mapped[datetime | None] = ts()
+    __table_args__ = (
+        Index("uq_one_active_exit_per_vehicle", "vehicle_id", unique=True, postgresql_where=text(_ACTIVE_EXIT), sqlite_where=text(_ACTIVE_EXIT)),
+        Index("idx_exit_requests_vehicle", "vehicle_id", "created_at"),
     )
 
 

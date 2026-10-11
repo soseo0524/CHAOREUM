@@ -1,4 +1,4 @@
-// 08.02 충전 이력 — 이번 달 요약과 지난 충전 목록
+// 09.02 충전 이력 — 이번 달 요약과 지난 충전 목록
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';

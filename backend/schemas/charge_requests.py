@@ -137,13 +137,3 @@ class ChargeRequestPatch(ApiModel):
 class ChargeRequestPatchResponse(ApiModel):
     request: ChargeRequestOut
     feasibility: Feasibility | None = None  # 수정 시 재계산 결과
-
-
-class ParkingZoneOut(ApiModel):
-    """주차 구역 선택 화면용. available = capacity - (주차 중 + 예약된 요청)."""
-
-    id: str
-    name: str
-    capacity: int
-    available: int
-    is_available: bool

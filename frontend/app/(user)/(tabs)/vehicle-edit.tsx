@@ -1,4 +1,4 @@
-// 07.02 차량 수정
+// 08.02 차량 수정
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';

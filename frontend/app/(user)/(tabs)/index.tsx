@@ -1,4 +1,4 @@
-// 홈: GET /me/status 의 home_state 하나로 화면(01.04~05.06)을 고른다
+// 홈: GET /me/status 의 home_state 하나로 화면(01.04~06.06)을 고른다
 import { router } from 'expo-router';
 import { CarFront, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
@@ -56,6 +56,23 @@ function progressSteps(v: VehicleStatus, current = (v.step ?? 0) + 1, queueSub?:
   });
 }
 
+/** 'B구역 5번 자리' (임시 대기·출차 칸) */
+function placeText(p: { area: string | null; seat_no: number | null } | null, fallback = '다른 자리'): string {
+  if (!p) return '';
+  const seat = p.seat_no != null ? `${p.seat_no}번 자리` : fallback;
+  return p.area ? `${areaLabel(p.area)} ${seat}` : seat;
+}
+
+/** 출차 진행: 1=출차 접수, 2=출구로 이동, 3=출차 완료 */
+function exitSteps(current: number, place: string): Step[] {
+  const subs = ['관제에 출차를 전달하고 있어요', place ? `${place}로 가고 있어요` : '출차 구역으로 가고 있어요', undefined];
+  return ['출차 접수', '출구로 이동', '출차 완료'].map((title, i) => {
+    const n = i + 1;
+    const status = n < current || (n === 3 && current === 3) ? 'done' : n === current ? 'current' : 'todo';
+    return { title, status, sub: status === 'current' ? subs[i] : undefined };
+  });
+}
+
 function etaMetric(v: VehicleStatus, label = '예상 완료'): MetricItem {
   if (v.eta.state === EtaState.KNOWN && v.eta.at) {
     const c = clock(v.eta.at);
@@ -72,6 +89,7 @@ export default function Home() {
   const { status, error, connected, lastUpdated, refresh, reconnect } = useStatus();
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
 
   if (!status) {
@@ -142,6 +160,23 @@ export default function Home() {
       setBusy(false);
     }
   }
+
+  async function confirmExit() {
+    setBusy(true);
+    try {
+      await api.requestExit(v.vehicle_id);
+      setExitOpen(false);
+      await refresh();
+    } catch (e: any) {
+      setExitOpen(false);
+      Alert.alert('출차할 수 없어요', e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const exitButton = (kind: 'primary' | 'outline' = 'primary') => (
+    <Button kind={kind} label="출차하기" onPress={() => setExitOpen(true)} loading={busy} style={{ flex: 1 }} />
+  );
 
   const goRequest = () => router.navigate('/request');
   const banner = !connected ? (
@@ -215,7 +250,15 @@ export default function Home() {
           </Pressable>
         </View>
       ) : null;
-      footer = <Button label="충전 요청하기" onPress={goRequest} />;
+      // 요청 없이 주차장에 서 있는 차도 나갈 수 있다
+      footer = v.can_exit ? (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {exitButton('outline')}
+          <Button label="충전 요청하기" onPress={goRequest} style={{ flex: 1 }} />
+        </View>
+      ) : (
+        <Button label="충전 요청하기" onPress={goRequest} />
+      );
       break;
     }
     case HomeState.QUEUED: {
@@ -227,7 +270,27 @@ export default function Home() {
       ]
         .filter(Boolean)
         .join(' · ');
-      body = <Steps steps={progressSteps(v, 1, sub || '충전 순서를 기다리는 중')} />;
+      if (v.wait) {
+        // 충전기가 모두 사용 중이라 관제가 다른 칸에 임시로 주차시킴
+        const place = placeText(v.wait);
+        title = '대기 중';
+        body = (
+          <>
+            <Notice
+              eyebrow="임시 대기"
+              body={
+                v.wait.arrived
+                  ? `충전기가 모두 사용 중이라 ${place}에 주차하고 기다리는 중이에요.`
+                  : `충전기가 모두 사용 중이라 ${place}에 주차하고 대기할게요.`
+              }
+              sub={[sub, '충전기가 비면 바로 충전하러 이동해요.'].filter(Boolean).join(' · ')}
+            />
+            <Steps steps={progressSteps(v, 1, v.wait.arrived ? `${place}에서 대기 중` : `${place}로 이동 중`)} />
+          </>
+        );
+      } else {
+        body = <Steps steps={progressSteps(v, 1, sub || '충전 순서를 기다리는 중')} />;
+      }
       footer = (
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Button kind="outline" label="요청 수정" onPress={goRequest} style={{ flex: 1 }} />
@@ -245,10 +308,36 @@ export default function Home() {
       titleColor = C.active;
       showCharge = !!v.charge;
       body = <Steps steps={progressSteps(v)} />;
+      // 충전 중에는 출차할 수 없다(충전이 끝나면 출차 버튼이 나온다)
       if (hs === HomeState.MOVING_TO_CHARGER || hs === HomeState.CHARGING)
         footer = <Button kind="outline" label="충전 요청 취소" onPress={cancel} loading={busy} />;
-      if (hs === HomeState.PARKED) footer = <Button label="결과 보기" onPress={() => router.push('/result')} />;
+      if ((hs === HomeState.CHARGE_DONE || hs === HomeState.MOVING_TO_PARKING) && v.can_exit) footer = exitButton();
+      if (hs === HomeState.PARKED)
+        footer = (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Button kind="outline" label="결과 보기" onPress={() => router.push('/result')} style={{ flex: 1 }} />
+            {v.can_exit ? exitButton() : null}
+          </View>
+        );
       break;
+    case HomeState.EXIT_REQUESTED:
+    case HomeState.MOVING_TO_EXIT:
+    case HomeState.EXITED: {
+      const done = hs === HomeState.EXITED;
+      title = done ? '출차가 끝났어요' : hs === HomeState.MOVING_TO_EXIT ? '출구로 이동 중' : '출차를 접수했어요';
+      titleColor = C.active;
+      showCharge = !!v.charge;
+      const at = done ? v.exit?.completed_at : v.exit?.created_at;
+      metrics[1] = { label: '목표', value: req ? String(req.target_soc) : '—', unit: req ? '%' : undefined };
+      metrics[2] = at ? { label: done ? '출차 완료' : '출차 접수', value: clock(at).hm, unit: clock(at).ap } : { label: '출차', value: '—' };
+      body = <Steps steps={exitSteps(done ? 3 : hs === HomeState.MOVING_TO_EXIT ? 2 : 1, v.exit?.zone_id ? placeText(v.exit, '빈자리') : '')} />;
+      footer = done ? (
+        <Button kind="outline" label="충전 요청하기" onPress={goRequest} />
+      ) : (
+        <Button kind="outline" label="관제에 문의하기" onPress={contactCenter} />
+      );
+      break;
+    }
     case HomeState.VEHICLE_OFFLINE:
       title = '차량 신호를 기다려요';
       titleColor = C.sub;
@@ -353,6 +442,20 @@ export default function Home() {
         loading={busy}
         onKeep={() => setCancelOpen(false)}
         onConfirm={confirmCancel}
+      />
+      <Dialog
+        visible={exitOpen}
+        title="출차할까요?"
+        body={
+          hs === HomeState.CHARGE_DONE || hs === HomeState.MOVING_TO_PARKING
+              ? '주차구역 대신 출차 구역으로 이동해요.'
+              : '차량이 출차 구역으로 이동해요.'
+        }
+        keepLabel="계속 있기"
+        confirmLabel="출차하기"
+        loading={busy}
+        onKeep={() => setExitOpen(false)}
+        onConfirm={confirmExit}
       />
       {/* 전체 구역 지도. 요청 전이면 고른 자리로 충전 요청 화면을 연다 */}
       <ParkingMap

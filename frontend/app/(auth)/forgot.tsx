@@ -1,4 +1,4 @@
-// 09.01 비밀번호 재설정
+// 01-A.01 비밀번호 재설정
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';

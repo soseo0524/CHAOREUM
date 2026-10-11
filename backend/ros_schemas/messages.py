@@ -7,6 +7,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 from schemas.common import (
     ChargeRequestStatus,
     ChargerState,
+    ExitStatus,
     Pose,
     StrEnum,
     TaskStatus,
@@ -57,6 +58,16 @@ class ChargingCancelMsg(RosModel):
     vehicle_id: str = VehicleId
     requested_by: Literal["user", "admin"]
     reason: str | None = None
+
+
+class VehicleExitMsg(RosModel):
+    """/vehicle/exit — 출차. 차량을 출구 구역으로 보낸다. 충전 중이면 충전을 멈추고, 진행 중인 충전 요청은 관제가 끝낸다.
+    (관제 최종 형식 확정 전 임시 계약)"""
+
+    exit_id: str = UuidStr
+    vehicle_id: str = VehicleId
+    request_id: str | None = Field(None, pattern=UUID_PATTERN, description="출차 시점에 진행 중이던 충전 요청(없으면 null)")
+    requested_by: Literal["user", "admin"] = "user"
 
 
 class AdminAction(StrEnum):
@@ -209,6 +220,19 @@ class RequestStateItem(BaseModel):
     planned_start_at: AwareDatetime | None = None
     planned_parked_at: AwareDatetime | None = None
     reason: str | None = Field(None, description="FAILED·거절 사유")
+    wait_zone_id: str | None = Field(None, description="충전기가 모두 사용 중이라 임시로 주차한(또는 가는) 칸. 필드를 안 보내면 기존 값 유지")
+    wait_arrived: bool | None = Field(None, description="임시 대기 칸에 도착했는지")
+
+
+class ExitStateItem(BaseModel):
+    """출차 진행 상황. exit_id = /vehicle/exit 의 exit_id."""
+
+    model_config = ConfigDict(extra="ignore")
+    exit_id: str = UuidStr
+    vehicle_id: str = VehicleId
+    status: ExitStatus
+    exit_zone_id: str | None = None
+    reason: str | None = Field(None, description="FAILED 사유")
 
 
 class EventItem(BaseModel):
@@ -236,6 +260,7 @@ class CentralStatusMsg(RosModel):
     tasks: list[TaskStateItem] = Field(default_factory=list)
     chargers: list[ChargerStateItem] = Field(default_factory=list)
     requests: list[RequestStateItem] = Field(default_factory=list)
+    exits: list[ExitStateItem] = Field(default_factory=list)
     events: list[EventItem] = Field(default_factory=list)
     scheduler: SchedulerInfo = Field(default_factory=SchedulerInfo)
     emergency_stop_active: bool = False

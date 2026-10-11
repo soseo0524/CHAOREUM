@@ -11,13 +11,15 @@ create type profile_status_enum as enum ('ACTIVE', 'SUSPENDED');
 create type vehicle_state_enum as enum (
     'ARRIVED_AT_STATION', 'WAITING', 'ASSIGNED', 'MOVING_TO_CHARGER',
     'ARRIVED_AT_CHARGER', 'CHARGING', 'CHARGE_DONE', 'MOVING_TO_PARKING',
-    'PARKED', 'FAULT'
+    'PARKED', 'MOVING_TO_EXIT', 'EXITED', 'FAULT'
 );
 
 create type charge_request_status_enum as enum (
     'REQUESTED', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED',
     'CANCEL_REQUESTED', 'CANCELLED', 'FAILED'
 );
+
+create type exit_status_enum as enum ('REQUESTED', 'IN_PROGRESS', 'COMPLETED', 'FAILED');
 
 create type task_status_enum as enum (
     'CREATED', 'ACCEPTED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'
@@ -92,6 +94,8 @@ create table charge_requests (
     cancel_requested_at timestamptz,
     completed_at timestamptz,                  -- PARKED 도달 시각
     progress_step smallint not null default 0 check (progress_step between 0 and 5),  -- 이 요청이 도달한 가장 높은 진행 단계(화면이 뒤로 가지 않게)
+    wait_zone_id text,                         -- 충전기가 모두 사용 중일 때 관제가 정한 임시 대기 칸(예: PARKING_05). null=임시 대기 아님
+    wait_arrived boolean not null default false,  -- 임시 대기 칸에 도착했는지
     constraint ck_charge_soc check (min_soc <= target_soc)
 );
 
@@ -99,6 +103,24 @@ create table charge_requests (
 create unique index uq_one_active_charge_request_per_vehicle
     on charge_requests (vehicle_id)
     where status in ('REQUESTED', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'CANCEL_REQUESTED');
+
+-- 출차: 사용자가 '나갈래'를 누르면 차량이 출구 구역으로 이동한다(충전 중이면 충전을 멈춤)
+create table exit_requests (
+    id uuid primary key default gen_random_uuid(),
+    vehicle_id uuid not null references vehicles(id) on delete cascade,
+    charge_request_id uuid references charge_requests(id) on delete set null,  -- 출차 시점에 진행 중이던 충전 요청
+    status exit_status_enum not null default 'REQUESTED',
+    exit_zone_id text,                         -- 관제가 보낸 출구 구역 id
+    error_message text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    completed_at timestamptz
+);
+
+-- 차량당 진행 중인 출차는 1개
+create unique index uq_one_active_exit_per_vehicle
+    on exit_requests (vehicle_id)
+    where status in ('REQUESTED', 'IN_PROGRESS');
 
 create table vehicle_tasks (
     id uuid primary key default gen_random_uuid(),
@@ -235,6 +257,7 @@ create index idx_events_vehicle on events (vehicle_id);
 create index idx_events_type on events (type);
 create index idx_notifications_user_created on notifications (user_id, created_at desc);
 create index idx_notifications_unread on notifications (user_id) where read_at is null;
+create index idx_exit_requests_vehicle on exit_requests (vehicle_id, created_at desc);
 create index idx_consents_user on consents (user_id, agreed_at desc);
 
 -- ───────── updated_at 자동 갱신 ─────────
@@ -254,6 +277,7 @@ create trigger trg_charge_requests_updated_at before update on charge_requests f
 create trigger trg_vehicle_tasks_updated_at before update on vehicle_tasks for each row execute function set_updated_at();
 create trigger trg_vehicle_states_updated_at before update on vehicle_states for each row execute function set_updated_at();
 create trigger trg_charger_states_updated_at before update on charger_states for each row execute function set_updated_at();
+create trigger trg_exit_requests_updated_at before update on exit_requests for each row execute function set_updated_at();
 create trigger trg_push_tokens_updated_at before update on push_tokens for each row execute function set_updated_at();
 
 -- ───────── RLS: 켜되 앱용 policy는 만들지 않는다 (앱은 DB 직접 접근 금지) ─────────
@@ -272,6 +296,7 @@ alter table consents enable row level security;
 alter table audit_logs enable row level security;
 alter table settings enable row level security;
 alter table push_tokens enable row level security;
+alter table exit_requests enable row level security;
 
 -- ───────── Supabase Auth 연동 ─────────
 -- 가입 시 profiles 행을 만든다(app_role은 기본 'user'. 사용자 메타데이터에서 권한을 읽지 않는다).

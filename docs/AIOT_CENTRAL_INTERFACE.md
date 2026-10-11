@@ -13,7 +13,7 @@
 ## 서버 연결 방식 (ROS_MODE)
 
 - `mock`: 관제 없이 개발. `POST /dev/simulate`로 `/central_status`를 흉내 낸다.
-- `gateway`: **관제가 노트북·집 네트워크에 있어 서버가 접속할 수 없을 때.** 관제 PC에서 `gateway/ros_gateway_client.py`를 실행하면 서버의 `/ws/gateway`로 먼저 연결하고, 그 한 줄로 토픽을 양방향 전달한다. 서버에서는 `ROS_MODE=gateway`, `GATEWAY_TOKEN=<비밀값>`을 설정하고 게이트웨이에도 같은 값을 준다.
+- `gateway`: **관제가 노트북·집 네트워크에 있어 서버가 접속할 수 없을 때.** 관제 PC의 게이트웨이가 서버의 `/ws/gateway`로 먼저 연결하고, 그 한 줄로 메시지를 양방향 전달한다. 서버에서는 `ROS_MODE=gateway`, `GATEWAY_TOKEN=<비밀값>`을 설정하고 게이트웨이에도 같은 값을 준다.
   - 서버 → 관제: `/charging/request`, `/charging/cancel`, `/admin/command`, `/emergency_stop`. 연결이 끊긴 동안 쌓인 메시지(최대 500개)는 재연결 시 순서대로 전달된다.
   - 관제 → 서버: `/central_status`만 받는다. 메시지 형식은 `{"topic": "...", "data": "<JSON 문자열>"}`.
   - 게이트웨이 스크립트는 ROS 2 환경에서 아직 시험하지 않았다. 서버 쪽은 자동 테스트(`backend/tests/test_gateway.py`)가 있다.
@@ -28,6 +28,7 @@
 | --- | --- | --- |
 | `/charging/request` | fastapi → central | 중앙 도메인 내부 |
 | `/charging/cancel` | fastapi → central | 중앙 도메인 내부 |
+| `/vehicle/exit` | fastapi → central | 중앙 도메인 내부 |
 | `/admin/command` | fastapi → central | 중앙 도메인 내부 |
 | `/emergency_stop` | fastapi → central+vehicle | 0↔차량 도메인 브리지 |
 | `/vehicle_task` | central → vehicle | 0↔차량 도메인 브리지 |
@@ -42,7 +43,7 @@
 2. `/charging/cancel`을 받으면 해당 요청을 취소하고, `/central_status`의 `requests`에 `CANCELLED`로 알린다.
 3. 요청 상태는 `REQUESTED → ACCEPTED → SCHEDULED → IN_PROGRESS → COMPLETED`(또는 `FAILED`, `CANCELLED`)이며 `/central_status.requests[]`로만 FastAPI에 전달한다. **`COMPLETED`는 차량이 `PARKED`가 된 시점**이다(충전 완료 시점이 아니다).
 4. `desired_finish_at`은 사용자가 PARKED가 되길 원하는 시각이다. 대기 + 충전기 이동 + 충전 + 주차구역 이동이 이 시각 안에 들어오도록 스케줄한다.
-5. 차량 상태는 `ARRIVED_AT_STATION, WAITING, ASSIGNED, MOVING_TO_CHARGER, ARRIVED_AT_CHARGER, CHARGING, CHARGE_DONE, MOVING_TO_PARKING, PARKED, FAULT`. 충전이 끝나면(CHARGE_DONE) 관제가 `MOVE_TO_PARKING` 작업을 만든다. 출차·호출 흐름은 없다.
+5. 차량 상태는 `ARRIVED_AT_STATION, WAITING, ASSIGNED, MOVING_TO_CHARGER, ARRIVED_AT_CHARGER, CHARGING, CHARGE_DONE, MOVING_TO_PARKING, PARKED, MOVING_TO_EXIT, EXITED, FAULT`. 충전이 끝나면(CHARGE_DONE) 관제가 `MOVE_TO_PARKING` 작업을 만든다. 출차는 14번.
 6. `/central_status`는 1 Hz로 발행한다. 차량 `last_seen_at`이 5초 넘게 갱신되지 않으면 앱은 OFFLINE으로 표시한다.
 7. `/central_status.tasks[]`에 진행 중·최근 작업을 반드시 넣는다. 차량의 `current_task_id`는 이 목록에 있는 작업이어야 한다.
 8. `events[]`의 `event_id`는 관제가 매기는 고유 값이다. 같은 이벤트를 다시 보내도 FastAPI가 중복 저장하지 않는다.
@@ -51,6 +52,8 @@
 11. 충전기 점검 모드·출력 제한을 관제에 전달하는 방법은 **아직 정해지지 않았다**(열린 항목).
 12. `zone_id`·`charger_id`는 FastAPI DB의 `parking_zones`·`chargers` id와 같아야 한다. 모르는 id는 null로 저장된다. DB 값은 관제의 `fleet_locations.yaml`과 맞춰야 한다.
 13. `/charging/request`의 **`parking_area`(A·B·C)가 사용자가 고른 주차 구역**이다. 사용자는 구역만 고르고, 그 구역 안의 빈 칸은 관제가 고른다. `null`이면 관제가 구역도 고른다. 같은 `request_id` 재발행으로 구역이 바뀔 수 있다. `parking_zone_id`(칸)는 이전 방식으로 앱은 더 이상 보내지 않는다. 실제로 주차한 칸은 `/central_status` 차량의 `zone_id`(`PARKING_nn`)로 알린다.
+14. **출차(관제 시연용 구현 기준)**: 사용자가 앱에서 출차를 누르면(충전 완료·주차구역 이동·주차 완료에서만, 충전 중에는 불가) 서버가 `/vehicle/exit`을 발행한다. 관제 게이트웨이(macaron)로는 `{"type": "vehicle_exit", "payload": {"vehicle_id": "EV-01"}}`만 간다(요청이 이미 COMPLETED여도 가능). 관제는 차량의 기존 작업을 중단하고 **C 구역 빈 칸**으로 보내며, `request_result`(envelope에 `vehicle_id`, payload `status: EXITING`, `assigned_parking_slot`)로 응답한다. C 구역이 꽉 찼거나(`NO_EXIT_PARKING_AVAILABLE_IN_C`) 차량이 준비 안 됐으면(`VEHICLE_NOT_READY_FOR_EXIT`) 409. 이후 차량은 `state: EXITING`, `parking_purpose: EXIT`, `assigned_parking_slot`으로 오고 **출차 완료는 따로 오지 않는다** → 서버는 차량 `location_id`가 출차 칸과 같아지면 출차 완료(EXITED)로 본다. 관제는 충전 요청 상태를 그대로 두므로 관제가 출차를 받으면 서버가 진행 중이던 충전 요청을 `CANCELLED`로 끝낸다. 자체 관제(aiot 프로토콜)는 `/central_status.exits[]` 또는 차량 상태 `MOVING_TO_EXIT` → `EXITED`로 알린다.
+15. **임시 대기**: 충전기가 모두 사용 중이라 차를 다른 칸에 임시로 주차시킬 때 `/central_status.requests[]`에 `wait_zone_id`(`PARKING_nn`)와 `wait_arrived`(도착 여부)를 넣는다. 충전하러 가면 `wait_zone_id: null`. 필드를 빼면 서버는 이전 값을 유지한다.
 
 ## 메시지 예시
 
@@ -80,6 +83,20 @@
   "requested_by": "user"
 }
 ```
+
+### `/vehicle/exit`
+
+```json
+{
+  "schema_version": 1,
+  "exit_id": "33333333-3333-4333-8333-333333333333",
+  "vehicle_id": "CAR_01",
+  "request_id": "11111111-1111-4111-8111-111111111111",
+  "requested_by": "user"
+}
+```
+
+관제 게이트웨이(macaron)로는 `{"type": "vehicle_exit", "payload": {"vehicle_id"}}`로 보낸다.
 
 ### `/admin/command`
 

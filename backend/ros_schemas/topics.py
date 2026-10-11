@@ -25,6 +25,7 @@ TOPICS: dict[str, TopicSpec] = {
     for t in [
         TopicSpec("/charging/request", m.ChargingRequestMsg, "fastapi", "central", "none"),
         TopicSpec("/charging/cancel", m.ChargingCancelMsg, "fastapi", "central", "none"),
+        TopicSpec("/vehicle/exit", m.VehicleExitMsg, "fastapi", "central", "none"),
         TopicSpec("/admin/command", m.AdminCommandMsg, "fastapi", "central", "none"),
         TopicSpec("/emergency_stop", m.EmergencyStopMsg, "fastapi", "central+vehicle", "0->vehicle"),
         TopicSpec("/vehicle_task", m.VehicleTaskMsg, "central", "vehicle", "0->vehicle"),

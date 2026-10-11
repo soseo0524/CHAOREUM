@@ -1,4 +1,4 @@
-// 07.01 내 차량 · 목록 (+ 07.03 삭제 확인)
+// 08.01 내 차량 · 목록 (+ 08.03 삭제 확인)
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, View } from 'react-native';

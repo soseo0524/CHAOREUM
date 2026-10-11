@@ -259,19 +259,14 @@ def test_dev_simulator_walks_five_steps_to_completed():
     assert len(db_rows(m.VehicleTask)) == 2
 
 
-def test_parking_zone_pick_list_full_and_edit():
+def test_parking_zone_id_request_and_edit():
     vid = vehicle(); assign(vid)
     client.post("/consents", headers=UH, json=dict(version="v1"))
-    zs = client.get("/parking-zones", headers=UH).json()
-    assert {z["id"] for z in zs} == {seat_zone_id(n) for n in ALL_SEAT_NUMBERS} and len(zs) == 57
-    assert all(z["is_available"] and z["capacity"] == 1 for z in zs)
     bad = client.post("/charge-requests", headers=UH, json=body(vid, parking_zone_id="CHARGE_01"))  # PARKING 아님
     assert bad.status_code == 422
     r = client.post("/charge-requests", headers=UH, json=body(vid, parking_zone_id="PARKING_01"))
     assert r.status_code == 201 and r.json()["request"]["parking_zone_id"] == "PARKING_01"
     assert ros.last("/charging/request")["parking_zone_id"] == "PARKING_01"
-    z1 = next(z for z in client.get("/parking-zones", headers=UH).json() if z["id"] == "PARKING_01")
-    assert z1["available"] == z1["capacity"] - 1
     rid = r.json()["request"]["id"]
     p = client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(parking_zone_id="PARKING_02"))
     assert p.status_code == 200 and ros.last("/charging/request")["parking_zone_id"] == "PARKING_02"
@@ -440,46 +435,30 @@ def test_seed_sync_replaces_old_21_seat_layout():
 def test_parked_notice_says_seat_number_including_zero():
     vid = vehicle(); assign(vid)
     now = datetime.now(timezone.utc).isoformat()
+    client.post("/consents", headers=UH, json=dict(version="v1"))
     for zone, text in (("PARKING_00", "0번 자리에 도착했어요."), ("PARKING_65", "65번 자리에 도착했어요.")):
-        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="CHARGE_DONE", soc=80, zone_id="CHARGE_01", last_seen_at=now)])))
-        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="PARKED", soc=80, zone_id=zone, last_seen_at=now)])))
+        rid = client.post("/charge-requests", headers=UH, json=body(vid)).json()["request"]["id"]
+        req = lambda s: [dict(request_id=rid, vehicle_id="CAR_01", status=s)]
+        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="MOVING_TO_PARKING", soc=80, last_seen_at=now)], requests=req("IN_PROGRESS"))))
+        ros.inject_central_status(json.dumps(dict(at=now, vehicles=[dict(vehicle_id="CAR_01", state="PARKED", soc=80, zone_id=zone, last_seen_at=now)], requests=req("COMPLETED"))))
         assert text in [n["body"] for n in client.get("/me/notifications", headers=UH).json()]
 
 
-def test_parking_areas_overview_and_detail():
+def test_parking_areas_overview():
     r = client.get("/parking-zones/areas", headers=UH).json()["areas"]
     assert [a["area_id"] for a in r] == ["A", "B", "C"] and [a["name"] for a in r] == ["A구역", "B구역", "C구역"]
     assert [a["seat_total"] for a in r] == [17, 26, 14] and [a["free_count"] for a in r] == [17, 26, 14]
     assert all(a["state"] == "OPEN" and not a["has_mine"] for a in r)
     assert [x["seat_no"] for x in r[0]["seats"]] == [61, 45, 43, 42, 40, 41, 38, 37, 36, 58, 33, 32, 59, 29, 28, 62, 26]  # 실제 배치 순서
     assert r[1]["seats"][0]["zone_id"] == "PARKING_00" and r[2]["seats"][0]["zone_id"] == "PARKING_57" and r[2]["seats"][-1]["zone_id"] == "PARKING_64"
-    d = client.get("/parking-zones/areas/a", headers=UH).json()  # 대소문자 무관
-    assert d["area_id"] == "A" and d["rows"] == 1 and d["cols"] == 17 and d["entrance"] is None
-    pos = {x["seat_no"]: (x["row"], x["col"]) for x in d["seats"]}
-    assert pos[61] == (0, 0) and pos[33] == (0, 10) and pos[26] == (0, 16) and len(pos) == 17  # 한 줄 17칸
-    assert d["selected_ok"] is None and all(x["state"] == "FREE" for x in d["seats"])
-    b = client.get("/parking-zones/areas/B", headers=UH).json()
-    assert b["rows"] == 2 and b["cols"] == 13 and b["seat_total"] == 26
-    pos = {x["seat_no"]: (x["row"], x["col"]) for x in b["seats"]}
-    assert pos[0] == (0, 0) and pos[60] == (0, 12) and pos[25] == (1, 0) and pos[63] == (1, 12) and pos[13] == (1, 11)  # 두 줄 13칸씩
-    c = client.get("/parking-zones/areas/C", headers=UH).json()
-    assert c["rows"] == 1 and c["cols"] == 14 and {x["seat_no"] for x in c["seats"]} == set(AREA_ROWS["C"][0])
-    assert client.get("/parking-zones/areas/Z", headers=UH).status_code == 404
     assert client.get("/parking-zones/areas").status_code in (401, 403)
-    # 고르는 중인 자리는 MINE, 구역 밖 자리를 보내도 이 구역은 그대로
-    sel = client.get("/parking-zones/areas/A?selected=PARKING_33", headers=UH).json()
-    assert [x["state"] for x in sel["seats"] if x["seat_no"] == 33] == ["MINE"] and sel["selected_ok"] is True
-    outside = client.get("/parking-zones/areas/A?selected=PARKING_03", headers=UH).json()  # 3번은 B구역
-    assert all(x["state"] == "FREE" for x in outside["seats"])
-    # 다른 사용자가 33번을 선정하면 TAKEN(02-A.02), 내 쪽 selected_ok=false. 주인 화면에서는 MINE
+    # 다른 사용자가 33번을 선정하면 내 화면에서 A구역 빈자리가 줄고, 주인 화면에서는 내 자리(has_mine)
     other = uuid.uuid4(); oh = H(other, "user")
     ov = client.post("/vehicles", headers=oh, json=dict(plate_no="99허9999", battery_kwh=60, max_charge_kw=11)).json()["id"]
     assign(ov, "CAR_02"); client.post("/consents", headers=oh, json=dict(version="v1"))
     assert client.post("/charge-requests", headers=oh, json=body(ov, parking_zone_id="PARKING_33")).status_code == 201
-    mine_view = client.get("/parking-zones/areas/A?selected=PARKING_33", headers=UH).json()
-    assert [x["state"] for x in mine_view["seats"] if x["seat_no"] == 33] == ["TAKEN"] and mine_view["selected_ok"] is False and mine_view["free_count"] == 16
-    owner_view = client.get("/parking-zones/areas/A", headers=oh).json()
-    assert [x["state"] for x in owner_view["seats"] if x["seat_no"] == 33] == ["MINE"]
+    mine_a = client.get("/parking-zones/areas", headers=UH).json()["areas"][0]
+    assert [x["state"] for x in mine_a["seats"] if x["seat_no"] == 33] == ["TAKEN"]
     ov_all = client.get("/parking-zones/areas", headers=oh).json()["areas"]
     assert ov_all[0]["has_mine"] is True and ov_all[0]["free_count"] == 17 and ov_all[1]["has_mine"] is False  # 내 자리는 내 화면에서 빈자리로 세지 않는 TAKEN이 아님
     assert client.get("/parking-zones/areas", headers=UH).json()["areas"][0]["free_count"] == 16
@@ -493,7 +472,6 @@ def test_full_area_is_marked_full():
         db.commit()
     areas = {a["area_id"]: a for a in client.get("/parking-zones/areas", headers=UH).json()["areas"]}
     assert areas["B"]["state"] == "FULL" and areas["B"]["free_count"] == 0 and areas["B"]["seat_total"] == 26 and areas["A"]["state"] == "OPEN"
-    assert client.get("/parking-zones/areas/B", headers=UH).json()["state"] == "FULL"
 
 
 def hs():
@@ -686,3 +664,109 @@ def test_waiting_zone_move_while_queued_does_not_count_as_progress():
     # 실제 진행이 시작되면 1단계부터 정상 진행
     assert send("MOVING_TO_CHARGER", "IN_PROGRESS")["home_state"] == "MOVING_TO_CHARGER"
     assert send("CHARGING", "IN_PROGRESS")["home_state"] == "CHARGING"
+
+
+def _start(vid):
+    client.post("/consents", headers=UH, json=dict(version="v1"))
+    return client.post("/charge-requests", headers=UH, json=body(vid)).json()["request"]["id"]
+
+
+def _send(rid, state, status="IN_PROGRESS", exits=None, **req):
+    ros.inject_central_status(json.dumps(dict(at=iso(), vehicles=[dict(vehicle_id="CAR_01", state=state, soc=60, last_seen_at=iso())],
+                                              requests=[dict(request_id=rid, vehicle_id="CAR_01", status=status, **req)] if rid else [],
+                                              exits=exits or [])))
+    return client.get("/me/status", headers=UH).json()["vehicles"][0]
+
+
+def test_temporary_wait_zone_is_shown_while_queued():
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+    n = AREA_ROWS["B"][0][0]
+    v = _send(rid, "MOVING_TO_PARKING", "ACCEPTED", wait_zone_id=seat_zone_id(n), wait_arrived=False)
+    assert v["home_state"] == "QUEUED" and v["wait"] == dict(zone_id=seat_zone_id(n), area="B", seat_no=n, arrived=False)
+    v = _send(rid, "PARKED", "ACCEPTED")  # 필드를 안 보내면 기존 값 유지
+    assert v["wait"]["zone_id"] == seat_zone_id(n)
+    assert _send(rid, "PARKED", "ACCEPTED", wait_zone_id=seat_zone_id(n), wait_arrived=True)["wait"]["arrived"] is True
+    v = _send(rid, "MOVING_TO_CHARGER", wait_zone_id=None)  # 충전하러 가면 대기 정보는 사라짐
+    assert v["home_state"] == "MOVING_TO_CHARGER" and v["wait"] is None
+
+
+def test_exit_only_after_charging_then_flows_to_exited():
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+    v = _send(rid, "WAITING", "ACCEPTED")
+    assert v["can_exit"] is False
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).json()["code"] == "EXIT_NOT_ALLOWED"
+    _send(rid, "MOVING_TO_CHARGER")
+    assert _send(rid, "CHARGING")["can_exit"] is False  # 충전 중에는 출차 불가
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).json()["code"] == "EXIT_NOT_ALLOWED"
+    assert _send(rid, "CHARGE_DONE")["can_exit"] is True
+    r = client.post(f"/vehicles/{vid}/exit", headers=UH)
+    assert r.status_code == 201, r.text
+    eid = r.json()["id"]
+    sent = ros.last("/vehicle/exit")
+    assert sent["exit_id"] == eid and sent["request_id"] == rid and sent["vehicle_id"] == "CAR_01"
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).json()["code"] == "EXIT_IN_PROGRESS"
+    v = client.get("/me/status", headers=UH).json()["vehicles"][0]
+    assert v["home_state"] == "EXIT_REQUESTED" and v["exit"]["status"] == "REQUESTED" and v["can_exit"] is False
+    assert _send(rid, "MOVING_TO_EXIT")["home_state"] == "MOVING_TO_EXIT"
+    v = _send(rid, "EXITED", "CANCELLED")
+    assert v["home_state"] == "EXITED" and v["exit"]["status"] == "COMPLETED"
+    assert any(n["type"] == "EXITED" for n in client.get("/me/notifications", headers=UH).json())
+    # 출차한 차량은 새 충전 요청을 받지 않는다(관제가 다시 배차하지 않음). 미리보기(dry_run)도 같다
+    for dry in (False, True):
+        r = client.post("/charge-requests", headers=UH, json=body(vid, dry_run=dry))
+        assert r.status_code == 409 and r.json()["code"] == "VEHICLE_EXITED"
+    # 다시 들어와 관제가 다른 상태를 보내면 요청할 수 있고, 출차 완료 화면은 끝난다
+    _send(None, "PARKED")
+    assert _start(vid) and client.get("/me/status", headers=UH).json()["vehicles"][0]["home_state"] != "EXITED"
+
+
+def test_exit_status_list_from_controller_and_failure():
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+    _send(rid, "MOVING_TO_CHARGER"); _send(rid, "CHARGING"); _send(rid, "CHARGE_DONE"); _send(rid, "MOVING_TO_PARKING")
+    _send(rid, "PARKED", "COMPLETED")
+    v = client.get("/me/status", headers=UH).json()["vehicles"][0]
+    assert v["home_state"] == "PARKED" and v["can_exit"] is True
+    eid = client.post(f"/vehicles/{vid}/exit", headers=UH).json()["id"]
+    assert ros.last("/vehicle/exit")["request_id"] is None  # 주차 완료 뒤 출차: 진행 중인 충전 요청 없음
+    assert _send(None, "PARKED", exits=[dict(exit_id=eid, vehicle_id="CAR_01", status="IN_PROGRESS")])["home_state"] == "MOVING_TO_EXIT"
+    v = _send(None, "PARKED", exits=[dict(exit_id=eid, vehicle_id="CAR_01", status="FAILED", reason="출구가 막혀 있어요")])
+    assert v["exit"] is None and v["home_state"] == "PARKED" and v["can_exit"] is True  # 실패하면 다시 출차할 수 있다
+    assert any(n["type"] == "EXIT_FAILED" and n["body"] == "출구가 막혀 있어요" for n in client.get("/me/notifications", headers=UH).json())
+
+
+def test_delete_vehicle_with_exit_history():
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+    _send(rid, "MOVING_TO_CHARGER"); _send(rid, "CHARGING"); _send(rid, "CHARGE_DONE")
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 201
+    assert client.delete(f"/vehicles/{vid}", headers=UH).status_code == 200
+    assert db_rows(m.ExitRequest) == []
+
+
+def test_dev_simulator_covers_wait_zone_and_exit():
+    vid = vehicle(); assign(vid)
+    _start(vid)
+    n = AREA_ROWS["C"][0][0]
+    r = client.post(f"/dev/simulate?step_s=0&wait=true&wait_zone={seat_zone_id(n)}", headers=UH)
+    assert r.status_code == 200, r.text
+    v = client.get("/me/status", headers=UH).json()["vehicles"][0]
+    assert v["home_state"] == "PARKED" and v["wait"] is None
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 201
+    assert client.post("/dev/simulate?step_s=0&wait=true", headers=UH).json()["exit_id"]
+    v = client.get("/me/status", headers=UH).json()["vehicles"][0]
+    assert v["home_state"] == "EXITED" and v["exit"]["status"] == "COMPLETED"
+
+
+def test_parked_car_can_exit_after_cancel_and_no_parked_notice_without_request():
+    vid = vehicle(); assign(vid)
+    _send(None, "PARKED")  # 요청 없이 서 있음: 주차 완료 알림 없음
+    rid = _start(vid)
+    _send(rid, "WAITING", "ACCEPTED")
+    client.patch(f"/charge-requests/{rid}", headers=UH, json=dict(cancel=True))
+    v = _send(rid, "PARKED", "CANCELLED")
+    assert v["home_state"] == "CANCELLED" and v["can_exit"] is True  # 취소 뒤 주차된 차도 출차 가능
+    _send(None, "WAITING"); _send(None, "PARKED")  # 관제 신호가 흔들려도
+    assert [n for n in client.get("/me/notifications", headers=UH).json() if n["type"] == "PARKED"] == []

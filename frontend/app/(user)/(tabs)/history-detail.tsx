@@ -1,4 +1,4 @@
-// 08.03 충전 이력 상세
+// 09.03 충전 이력 상세
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator } from 'react-native';

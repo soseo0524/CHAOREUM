@@ -20,7 +20,7 @@ function RootStack() {
       <Stack.Protected guard={!!session && !recovering}>
         <Stack.Screen name="(user)" />
       </Stack.Protected>
-      {/* 09.03 재설정 메일의 링크(aiot://reset-password#access_token=...)로 들어오는 화면 */}
+      {/* 01-A.03 재설정 메일의 링크(aiot://reset-password#access_token=...)로 들어오는 화면 */}
       <Stack.Protected guard={!session || recovering}>
         <Stack.Screen name="reset-password" />
       </Stack.Protected>

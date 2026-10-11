@@ -1,4 +1,4 @@
-// 06.02 프로필 수정
+// 07.02 프로필 수정
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';

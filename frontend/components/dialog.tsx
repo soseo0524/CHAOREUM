@@ -1,4 +1,4 @@
-// 확인 대화상자(02-A.05, 06.04, 06.05, 07.03)와 토글(06.03)
+// 확인 대화상자(02-A.04, 07.04, 07.05, 08.03)와 토글(07.03)
 import { Modal, Pressable, View } from 'react-native';
 
 import { C } from '@/constants/theme';

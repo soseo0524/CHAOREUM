@@ -35,8 +35,9 @@ def gw(monkeypatch):
     bridge.on_central_status(main._on_central)
     import routers.admin
     import routers.charge_requests
+    import routers.vehicles
 
-    for mod in (ws_mod, routers.charge_requests, routers.admin):  # 요청 API가 이 게이트웨이로 발행하게
+    for mod in (ws_mod, routers.charge_requests, routers.admin, routers.vehicles):  # 요청 API가 이 게이트웨이로 발행하게
         monkeypatch.setattr(mod, "ros", bridge)
     monkeypatch.setattr(ws_mod, "settings", replace(ws_mod.settings, gateway_token=TOKEN))
     return bridge
@@ -131,11 +132,17 @@ def test_full_flow_over_controller_gateway(gw):
         v = wait_home(lambda v: v["home_state"] == "MOVING_TO_CHARGER")
         assert v["home_state"] == "MOVING_TO_CHARGER" and v["current_task"]["type"] == "MOVE_TO_CHARGER"
 
-        send(raw_status(rid, "CHARGING", vehicle_state="PARKED", location="CHARGER_01", charger_state="CHARGING", soc=60, task_id="TASK_EV-01_1"))
+        # 실제 관제 충전기 state는 RESERVED/OCCUPIED뿐이라 게이트웨이는 충전 내내 ARRIVED_AT_CHARGER로 보낸다 → 충전 중으로 본다
+        send(raw_status(rid, "CHARGING", vehicle_state="PARKED", location="CHARGER_01", charger_state="RESERVED", soc=60, task_id="TASK_EV-01_1"))
         v = wait_home(lambda v: v["home_state"] == "CHARGING")
-        assert v["home_state"] == "CHARGING" and v["charger_id"] == "CHARGER_01"
+        assert v["state"] == "CHARGING" and v["charger_id"] == "CHARGER_01"
 
-        send(raw_status(rid, "CHARGING", vehicle_state="DRIVING", location=None, charger_state="CHARGE_COMPLETE", soc=80,
+        # 목표 SOC 도달, 주차 칸이 아직 없어 충전기에 머묾 → 충전 완료
+        send(raw_status(rid, "CHARGING", vehicle_state="PARKED", location="CHARGER_01", charger_state="RESERVED", soc=80, task_id="TASK_EV-01_1"))
+        v = wait_home(lambda v: v["home_state"] == "CHARGE_DONE")
+        assert v["state"] == "CHARGE_DONE"
+
+        send(raw_status(rid, "CHARGING", vehicle_state="DRIVING", location=None, charger_state="RESERVED", soc=80,
                         task_id="TASK_EV-01_1", return_task_id="RETURN_EV-01_2", parking_purpose="FINAL", assigned_parking_slot="PARKING_5"))
         v = wait_home(lambda v: v["home_state"] == "MOVING_TO_PARKING")
         assert v["home_state"] == "MOVING_TO_PARKING" and v["active_request"]["status"] == "IN_PROGRESS"
@@ -154,7 +161,15 @@ def test_cancel_and_controller_rejection(gw):
         assert json.loads(s.receive_text())["type"] == "charging_cancel"
         s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "ACTIVE", cancel_requested=True))}))
         assert wait_home(lambda v: v["home_state"] == "CANCELING")["home_state"] == "CANCELING"
-        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "CANCELED", parking_purpose="EXIT", parking_arrived=True))}))
+        # 관제는 취소 구역(EXIT)으로 차를 옮긴다. 게이트웨이는 이 이동도 MOVING_TO_CHARGER로 보낸다 → 주차 구역 이동으로 본다
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(
+            rid, "ACTIVE", vehicle_state="DRIVING", location=None, cancel_requested=True, parking_purpose="EXIT",
+            assigned_parking_slot="PARKING_0", return_task_id="EXIT_EV-01_1"))}))
+        assert wait_home(lambda v: v["state"] == "MOVING_TO_PARKING")["home_state"] == "CANCELING"
+        # 도착 = 관제 CANCELED. cancel_requested가 남아 있어 게이트웨이는 CANCEL_REQUESTED로 보낸다 → 취소 완료로 본다
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(
+            rid, "CANCELED", vehicle_state="PARKED", location="PARKING_0", cancel_requested=True, parking_purpose="EXIT",
+            assigned_parking_slot="PARKING_0", return_task_id="EXIT_EV-01_1", parking_arrived=True, charger_released=True))}))
         assert wait_home(lambda v: v["home_state"] == "CANCELLED")["home_state"] == "CANCELLED"
 
     rid2 = client.post("/charge-requests", headers=UH, json=body(home()["vehicle_id"])).json()["request"]["id"]
@@ -191,3 +206,112 @@ def test_cancel_of_request_unknown_to_controller_completes(gw, monkeypatch):
         raw["requests"] = []  # 관제 요청 목록에 없음
         s.send_text(json.dumps({"type": "central_status", "payload": payload(raw)}))
         assert wait_home(lambda v: v["home_state"] == "CANCELLED")["home_state"] == "CANCELLED"
+
+
+def test_wait_parking_maps_to_wait_zone_and_exit_is_sent():
+    from macaron import status_from_controller, to_controller
+
+    rid = "11111111-2222-3333-4444-555555555555"
+    req = dict(request_id=rid, vehicle_id="EV-01", status="ACCEPTED", parking_purpose="WAIT", assigned_parking_slot="PARKING_5",
+               return_task_id="t-wait", parking_arrived=True)
+    out = status_from_controller(dict(at="2026-10-11T00:00:00Z", requests=[req], vehicles=[], chargers=[]))
+    assert out["requests"][0]["wait_zone_id"] == "PARKING_05" and out["requests"][0]["wait_arrived"] is True
+    out = status_from_controller(dict(at="2026-10-11T00:00:00Z", requests=[{**req, "status": "IN_PROGRESS", "parking_purpose": "FINAL"}], vehicles=[], chargers=[]))
+    assert out["requests"][0]["wait_zone_id"] is None
+    env = to_controller("/vehicle/exit", '{"exit_id": "e1", "vehicle_id": "EV-01", "request_id": null}')
+    assert env == {"type": "vehicle_exit", "payload": {"vehicle_id": "EV-01"}}  # 관제는 vehicle_id만 받는다
+
+
+
+def _exiting(raw, slot, location, arrived=False):
+    """관제 _vehicle_status_snapshot: 출차 중이면 state=EXITING, 출차 칸 도착하면 EXITED + parking_arrived=true."""
+    raw["vehicles"][0].update(state="EXITED" if arrived else "EXITING", parking_purpose="EXIT", assigned_parking_zone="C",
+                              assigned_parking_slot=slot, parking_arrived=arrived, location_id=location)
+    return raw
+
+
+def test_exit_after_charging_over_controller_gateway(gw):
+    from schemas.parking_map import AREA_ROWS
+
+    n = AREA_ROWS["C"][0][0]
+    slot = f"PARKING_{n}"  # 관제 칸 ID(0을 채우지 않음)
+    rid = start()
+    vid = home()["vehicle_id"]
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        s.receive_text()  # charging_request
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "DISPATCHED", "DRIVING", location=None))}))
+        wait_home(lambda v: v["home_state"] == "MOVING_TO_CHARGER")
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "CHARGING", "PARKED", soc=50.0, location="CHARGER_01", charger_state="RESERVED"))}))
+        assert wait_home(lambda v: v["home_state"] == "CHARGING")["can_exit"] is False  # 충전 중에는 출차 불가
+        assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 409
+        # 충전 끝: 관제는 충전기를 비우고(charger_released) 충전기 AVAILABLE
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "CHARGING", "PARKED", soc=80.0, location="CHARGER_01", charger_released=True))}))
+        assert wait_home(lambda v: v["home_state"] == "CHARGE_DONE")["can_exit"] is True
+
+        r = client.post(f"/vehicles/{vid}/exit", headers=UH)
+        assert r.status_code == 201, r.text
+        assert json.loads(s.receive_text()) == {"type": "vehicle_exit", "payload": {"vehicle_id": EV}}
+        assert home()["home_state"] == "EXIT_REQUESTED"
+
+        # 관제 응답(게이트웨이가 request_id 대신 vehicle_id를 붙임)
+        s.send_text(json.dumps({"type": "request_result", "vehicle_id": EV, "payload": {
+            "vehicle_id": EV, "task_id": "EXIT_EV-01_x", "assigned_parking_zone": "C", "assigned_parking_slot": slot,
+            "operation": "EXIT", "status": "EXITING", "accepted": True}}))
+        v = wait_home(lambda v: v["home_state"] == "MOVING_TO_EXIT")
+        assert v["exit"]["zone_id"] == f"PARKING_{n:02d}" and v["exit"]["area"] == "C" and v["exit"]["seat_no"] == n
+        assert v["active_request"] is None  # 서버가 충전 요청을 끝냄
+
+        # 관제는 요청을 CHARGING으로 계속 보내지만 되살리지 않는다. 충전 위치를 떠나는 중
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(_exiting(raw_status(rid, "CHARGING", "DRIVING", soc=80.0, location=None, charger_released=True), slot, None))}))
+        time.sleep(0.2)
+        v = home()
+        assert v["home_state"] == "MOVING_TO_EXIT" and v["active_request"] is None
+        # 위치만 출차 칸과 같아서는 완료가 아니다(관제가 도착을 확인해야 EXITED)
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(_exiting(raw_status(rid, "CHARGING", "PARKED", soc=80.0, charger_released=True), slot, slot))}))
+        time.sleep(0.2)
+        assert home()["home_state"] == "MOVING_TO_EXIT"
+        # 관제 도착 확인: EXITED + parking_arrived, 중단된 충전 요청은 CANCELED
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(_exiting(raw_status(rid, "CANCELED", "PARKED", soc=80.0, charger_released=True), slot, slot, arrived=True))}))
+        v = wait_home(lambda v: v["home_state"] == "EXITED")
+        assert v["exit"]["status"] == "COMPLETED"
+        # 관제는 출차한 차량을 다시 배차하지 않으므로 새 요청을 받지 않는다
+        again = client.post("/charge-requests", headers=UH, json=body(vid))
+        assert again.status_code == 409 and again.json()["code"] == "VEHICLE_EXITED"
+    sessions = client.get("/me/sessions", headers=UH).json()
+    assert sessions and sessions[0]["end_at"] is not None and sessions[0]["end_soc"] == 80  # 충전이 끝날 때 마감
+    types = [n["type"] for n in client.get("/me/notifications", headers=UH).json()]
+    assert types.count("EXITED") == 1
+
+
+def test_exit_rejected_by_controller(gw):
+    rid = start()
+    vid = home()["vehicle_id"]
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        s.receive_text()
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "DISPATCHED", "DRIVING", location=None))}))
+        wait_home(lambda v: v["home_state"] == "MOVING_TO_CHARGER")  # 메시지는 다른 스레드에서 반영되니 순서대로 기다린다
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "CHARGING", "PARKED", location="CHARGER_01", charger_state="RESERVED"))}))
+        wait_home(lambda v: v["home_state"] == "CHARGING")
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(raw_status(rid, "CHARGING", "PARKED", soc=80.0, location="CHARGER_01", charger_released=True))}))
+        wait_home(lambda v: v["home_state"] == "CHARGE_DONE")
+        assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 201
+        s.receive_text()
+        s.send_text(json.dumps({"type": "request_result", "vehicle_id": EV, "payload": {
+            "accepted": False, "http_status": 409, "vehicle_id": EV, "request_id": None,
+            "error": json.dumps({"detail": {"error_code": "REQUEST_CONFLICT", "message": "NO_EXIT_PARKING_AVAILABLE_IN_C"}})}}))
+        v = wait_home(lambda v: v["home_state"] == "CHARGE_DONE")
+        assert v["exit"] is None and v["active_request"]["id"] == rid  # 요청은 그대로 진행
+    n = [x for x in client.get("/me/notifications", headers=UH).json() if x["type"] == "EXIT_FAILED"]
+    assert n and n[0]["body"] == "출차 구역(C)에 빈자리가 없어요."
+
+
+def test_request_rejected_because_vehicle_exited(gw):
+    rid = start()
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        s.receive_text()
+        # 관제 _http_error(409, 'REQUEST_CONFLICT', 'VEHICLE_EXITING_OR_EXITED_REQUIRES_ENTER') 응답 모양
+        s.send_text(json.dumps({"type": "request_result", "request_id": rid, "payload": {
+            "accepted": False, "http_status": 409, "request_id": rid, "vehicle_id": EV,
+            "error": json.dumps({"detail": {"error_code": "REQUEST_CONFLICT", "message": "VEHICLE_EXITING_OR_EXITED_REQUIRES_ENTER"}})}}))
+        v = wait_home(lambda v: v["home_state"] == "REQUEST_FAILED")
+        assert v["home_state"] == "REQUEST_FAILED" and "다시 들어온 뒤" in v["last_request"]["failure_reason"]

@@ -1,4 +1,4 @@
-// 06.01 내 정보 (+ 06.04 로그아웃 확인, 06.05 회원 탈퇴 확인)
+// 07.01 내 정보 (+ 07.04 로그아웃 확인, 07.05 회원 탈퇴 확인)
 import { router } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';

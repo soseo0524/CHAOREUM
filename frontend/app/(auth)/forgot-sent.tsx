@@ -1,4 +1,4 @@
-// 09.02 재설정 메일 발송
+// 01-A.02 재설정 메일 발송
 import { router, useLocalSearchParams } from 'expo-router';
 import { MailCheck } from 'lucide-react-native';
 import { useState } from 'react';

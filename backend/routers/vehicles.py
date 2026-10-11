@@ -11,7 +11,8 @@ from database import get_db
 from deps import CurrentUser, require_user
 from errors import ApiError
 from schemas.common import ErrorCode, OkResponse
-from ros_schemas.messages import ChargingCancelMsg
+from ros_schemas.messages import ChargingCancelMsg, VehicleExitMsg
+from schemas.status import ExitInfo
 from schemas.vehicles import VehicleCreate, VehicleOut, VehicleUpdate
 from state import ros
 
@@ -84,6 +85,7 @@ def delete_vehicle(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db:
     active = repo.active_request(db, v.id)
     if active and v.ros_vehicle_id:  # 차가 움직이고 있을 수 있으니 관제에 취소 전달(삭제 후에도 관제는 처리)
         ros.publish("/charging/cancel", ChargingCancelMsg(request_id=str(active.id), vehicle_id=v.ros_vehicle_id, requested_by="user"))
+    db.execute(delete(m.ExitRequest).where(m.ExitRequest.vehicle_id == v.id))
     rids = select(m.ChargeRequest.id).where(m.ChargeRequest.vehicle_id == v.id)
     tids = select(m.VehicleTask.id).where(m.VehicleTask.vehicle_id == v.id)
     db.execute(delete(m.Event).where(or_(m.Event.vehicle_id == v.id, m.Event.request_id.in_(rids), m.Event.task_id.in_(tids))))
@@ -95,3 +97,31 @@ def delete_vehicle(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db:
     db.delete(v)
     db.commit()
     return OkResponse()
+
+
+@router.post("/{vehicle_id}/exit", response_model=ExitInfo, status_code=201)
+def request_exit(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
+    """출차: 차량을 주차장 출구 구역으로 보낸다. 충전 완료·주차구역 이동·주차 완료에서만(충전 중에는 안 됨).
+    관제가 출차를 받으면 진행 중이던 충전 요청은 서버가 끝낸다."""
+    from services import vehicle_status
+
+    v = _mine(db, vehicle_id, u)
+    if v.ros_vehicle_id is None:
+        raise ApiError(422, ErrorCode.VEHICLE_NOT_ASSIGNED, "관리자가 차량을 배정하는 중입니다(배정 대기).")
+    if repo.active_exit(db, v.id):
+        raise ApiError(409, ErrorCode.EXIT_IN_PROGRESS, "이미 출차하고 있어요.")
+    vs = vehicle_status(db, v)
+    if not vs.can_exit:
+        raise ApiError(409, ErrorCode.EXIT_NOT_ALLOWED, "지금은 출차할 수 없어요. 충전이 끝난 뒤에 출차할 수 있어요.")
+    ar = repo.active_request(db, v.id)
+    ex = m.ExitRequest(vehicle_id=v.id, charge_request_id=ar.id if ar else None)
+    db.add(ex)
+    try:
+        db.commit()
+    except IntegrityError:  # 동시에 두 번 누름: partial unique index
+        db.rollback()
+        raise ApiError(409, ErrorCode.EXIT_IN_PROGRESS, "이미 출차하고 있어요.")
+    ros.publish("/vehicle/exit", VehicleExitMsg(exit_id=str(ex.id), vehicle_id=v.ros_vehicle_id, request_id=str(ar.id) if ar else None))
+    from services import exit_info
+
+    return exit_info(ex)

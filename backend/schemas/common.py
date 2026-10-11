@@ -57,8 +57,22 @@ class VehicleState(StrEnum):
     CHARGE_DONE = "CHARGE_DONE"
     MOVING_TO_PARKING = "MOVING_TO_PARKING"
     PARKED = "PARKED"
+    MOVING_TO_EXIT = "MOVING_TO_EXIT"  # 출차: 출구 구역으로 이동 중
+    EXITED = "EXITED"  # 출차: 출구 구역 도착(주차장을 나감)
     FAULT = "FAULT"
     # OFFLINE은 enum이 아니라 last_seen_at 5초 초과로 계산한 파생값(online=false)
+
+
+class ExitStatus(StrEnum):
+    """출차 요청 상태(충전 요청과 별개). 차량당 진행 중(REQUESTED·IN_PROGRESS) 출차는 1개."""
+
+    REQUESTED = "REQUESTED"  # 서버가 관제에 전달함
+    IN_PROGRESS = "IN_PROGRESS"  # 관제가 받아 차량이 출구로 이동 중
+    COMPLETED = "COMPLETED"  # 출구 구역 도착
+    FAILED = "FAILED"
+
+
+ACTIVE_EXIT_STATUSES = frozenset({ExitStatus.REQUESTED, ExitStatus.IN_PROGRESS})  # schema.sql uq_one_active_exit_per_vehicle 조건과 동일
 
 
 class TaskStatus(StrEnum):
@@ -103,6 +117,9 @@ class ErrorCode(StrEnum):
     HAS_ACTIVE_WORK = "HAS_ACTIVE_WORK"  # 409: 탈퇴/삭제 불가
     PARKING_ZONE_UNAVAILABLE = "PARKING_ZONE_UNAVAILABLE"  # 409: 선택한 자리가 이미 선정됨
     CENTRAL_UNAVAILABLE = "CENTRAL_UNAVAILABLE"  # 503: 중앙관제 응답 없음
+    EXIT_NOT_ALLOWED = "EXIT_NOT_ALLOWED"  # 409: 지금 상태에서는 출차 불가(충전 완료·주차 이동·주차 완료에서만. 충전 중 불가)
+    EXIT_IN_PROGRESS = "EXIT_IN_PROGRESS"  # 409: 이미 출차 진행 중
+    VEHICLE_EXITED = "VEHICLE_EXITED"  # 409: 출차 중·출차 완료 차량은 충전 요청 불가(관제가 출차 차량을 다시 배차하지 않음)
 
 
 # --- 공통 모델 ---

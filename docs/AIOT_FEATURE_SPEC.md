@@ -163,16 +163,14 @@
 - 내 정보·차량 관리·충전 이력은 기존 API(`/me`, `/vehicles`, `/me/sessions`)로 이미 제공.
 - 아직 실제 Supabase·ROS2 연결로 검증한 것은 아님(SQLite 테스트 49개 통과).
 
-### 3.y 주차 지도 API (구역 → 자리 2단계)
+### 3.y 주차 지도 API (구역 선택)
 
-주차 위치는 두 단계로 고른다. 모바일 화면에 지하 주차장 전체를 한 번에 그릴 수 없어서, 전체 지도에서 구역을 먼저 정하고 구역 안에서 자리를 고른다.
+사용자는 전체 지도에서 구역만 고른다. 구역 안의 칸은 관제가 정하므로 칸을 고르는 화면(구역 안 맵·자리 미리보기·이미 선정된 자리)과 그 API(`GET /parking-zones/areas/{area_id}`, `GET /parking-zones`)는 삭제했다.
 
 | 화면 | API | 내용 |
 |---|---|---|
 | 02.02 전체 지도 | `GET /parking-zones/areas` | 구역 A(위쪽 한 줄 17칸)·B(가운데 두 줄 13+13칸)·C(아래쪽 한 줄 14칸)별 `free_count`(빈자리 수), `state`(OPEN/FULL), `has_mine`, 구역 카드의 미니 현황용 `seats[]`. 확대·축소·이동은 앱이 처리 |
-| 02.03 구역 안 맵 | `GET /parking-zones/areas/{area_id}` | 자리별 `state`(TAKEN=차 있음, FREE=빈자리, MINE=내 자리·고르는 중), `row`/`col`(실제 배치대로 줄마다 왼쪽→오른쪽. A·C는 한 줄, B는 두 줄), `rows`/`cols`. 입구 칸은 없다(`entrance`는 항상 null) |
-| 02-A.02 이미 선정된 자리 | 같은 API + `?selected=PARKING_33` | 그 자리가 이미 선정됐으면 `selected_ok=false`(그 자리는 TAKEN). 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
-| 02-A.03 가득 찬 구역 | 위 두 API의 `state=FULL` | 앱이 "가득 찬 구역이에요"로 버튼을 막는다 |
+| 02-A.02 가득 찬 구역 | 위 API의 `state=FULL` | 앱이 "가득 찼어요"로 버튼을 막는다. 요청 접수 때도 409 `PARKING_ZONE_UNAVAILABLE` |
 
 - **사용자는 구역(A·B·C)만 고른다.** 고른 구역을 충전 요청의 `parking_area`로 보내고, 구역 안의 빈 칸은 관제가 고른다(실제 칸은 차량 `zone_id`로 표시). 자리 번호 n = `PARKING_nn`(capacity 1)은 지도 표시·현황용이다.
 - 옛 1인칭 줄 방식 `GET /parking-zones/map`은 삭제했다.
@@ -316,7 +314,7 @@
 | 사용자 | POST /charge-requests | 충전 요청 생성 | user |
 | 사용자 | PATCH /charge-requests/{id} | 희망 완료 시각·목표 SOC 변경, 취소 | user |
 | 사용자 | GET /me/status | 내 차량 실시간 상태 | user |
-| 사용자 | GET /parking-zones | 주차 구역 목록과 남은 자리(구역 선택 화면) | user |
+| 사용자 | GET /parking-zones/areas | 전체 지도: 구역(A·B·C)별 빈자리·가득 참 | user |
 | 사용자 | GET /me/sessions, /me/notifications | 충전 이력(충전 시작·종료 SOC, 충전량), 알림함 | user |
 | 사용자 | POST /me/notifications/{id}/read, /me/notifications/read-all | 알림 읽음 처리(하나 / 모두) | user |
 | 사용자 | GET/PATCH /me/notification-settings | 알림 4종(충전 완료·주차 완료·이상·대기 순번 변경) 켜기/끄기 | user |
@@ -344,7 +342,7 @@
 - 요청의 수명주기(REQUESTED → ACCEPTED → SCHEDULED → IN_PROGRESS → COMPLETED)는 `request_id`로 추적한다. ROS 2 Action은 쓰지 않는다(5.4).
 - 상태 반영: FastAPI의 ROS 노드가 `/central_status`(1 Hz)를 구독해 내부 캐시에 두고 DB에 upsert하면서 WebSocket으로 방송한다. 앱은 최초 진입 시 `GET /me/status`, 이후 `/ws/status`로 변경분을 받는다. Supabase Realtime은 단계만 늘려서 쓰지 않는다.
 - 충전이 끝나면(CHARGE_DONE) 스케줄러가 주차 구역 이동 작업(`/vehicle_task`, type=MOVE_TO_PARKING)을 만든다. 차량 상태는 MOVING_TO_CHARGER → ARRIVED_AT_CHARGER → CHARGING → CHARGE_DONE → MOVING_TO_PARKING → PARKED 순으로 바뀌며, 사용자 호출이나 인수 확인은 없다.
-- 연결 방식(`ROS_MODE`): `mock`(개발용), `gateway`(관제가 노트북 등 서버가 접속할 수 없는 곳에 있을 때: 관제 PC의 게이트웨이가 서버 `/ws/gateway`로 먼저 연결해 토픽을 양방향 전달, 끊긴 동안의 메시지는 최대 500개 보관 후 재전송, 비밀값 `GATEWAY_TOKEN`), `rclpy`(서버가 ROS 노드로 직접 연결, 미구현). 게이트웨이 참고 구현은 `gateway/ros_gateway_client.py`.
+- 연결 방식(`ROS_MODE`): `mock`(개발용), `gateway`(관제가 노트북 등 서버가 접속할 수 없는 곳에 있을 때: 관제 PC의 게이트웨이가 서버 `/ws/gateway`로 먼저 연결해 토픽을 양방향 전달, 끊긴 동안의 메시지는 최대 500개 보관 후 재전송, 비밀값 `GATEWAY_TOKEN`), `rclpy`(서버가 ROS 노드로 직접 연결, 미구현). 게이트웨이는 관제 담당 구현(`macaron8_AIOT-main/src/aiot_central_control/gateway/ros_gateway_client.py`, `Authorization: Bearer` 헤더)을 쓴다.
 - 알림 생성: 상태 전이로 서버가 만든다. 충전 완료·주차 완료·차량 이상(FAULT)·요청 실패·대기 순번 앞당김(내 앞 요청이 취소·시작되어 순번이 줄 때)이다. 알림함에는 항상 저장하고, 푸시와 WebSocket 방송은 알림 설정(5.1 `notification_prefs`)이 켜진 종류만 보낸다. 푸시 전송은 `PUSH_MODE=expo`일 때만 실제로 나간다(기본 `mock`).
 - 충전 이력: 차량이 CHARGING에 들어가면 충전 세션을 열고 벗어나면 닫는다. 충전량(kWh)은 SOC 증가분 × 배터리 용량으로 계산한다.
 - 대기 순번: 접수 순서(REQUESTED·ACCEPTED·SCHEDULED)로 매기고, 예상 대기시간은 앞선 대수 × 평균 소요 시간(임시값 12분, 스케줄러 연동 시 교체)이다. `GET /me/status`의 `active_request.queue_position`, `estimated_wait_min`으로 내려준다. 차량 좌표는 `pose`(map frame)로 내려준다.
@@ -352,7 +350,7 @@
 
 ### 5.4 ROS 2 토픽 계약
 
-**Domain Bridge가 필요한 이유**: 차량 3~4대를 동시에 운영하므로 ROS 2 도메인을 나누고, 도메인 사이는 Domain Bridge로 잇는다. 기존 파이프라인 문서(`AIOT_QWEN_CHARGING_PIPELINE.md`)는 단일 PC·단일 도메인 구성이어서 Domain Bridge가 없다. 이 구성은 다중 차량 확장 시 추가되는 부분이다.
+**Domain Bridge가 필요한 이유**: 차량 3~4대를 동시에 운영하므로 ROS 2 도메인을 나누고, 도메인 사이는 Domain Bridge로 잇는다. 관제 파이프라인 문서(`macaron8_AIOT-main/AIOT_QWEN_CHARGING_PIPELINE.md`)는 단일 PC·단일 도메인 구성이어서 Domain Bridge가 없다. 이 구성은 다중 차량 확장 시 추가되는 부분이다.
 
 도메인 간 통신은 Domain Bridge가 토픽만 넘길 수 있다는 전제로 ROS 2 Topic으로 통일한다. ROS 2 Action은 goal·cancel용 서비스와 feedback·status용 토픽을 함께 쓰기 때문에 토픽만 넘기는 구성에서는 쓸 수 없다. 충전 요청, 차량 이동 작업, 비상 정지는 JSON 메시지 Topic으로 보내고, 각 요청에 `request_id` 또는 `task_id`를 붙여 수락·진행·완료·실패 상태를 같은 ID로 추적한다. Action의 goal·feedback·result에 해당하는 흐름을 Topic과 ID로 직접 구현하는 셈이다.
 

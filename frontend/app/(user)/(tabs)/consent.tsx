@@ -1,4 +1,4 @@
-// 위치·차량 위임 동의 (내 정보에서 보기). 문구는 02.04 동의 시트와 같다.
+// 위치·차량 위임 동의 (내 정보에서 보기). 문구는 02.03 동의 시트와 같다.
 import { router } from 'expo-router';
 import { BatteryCharging, KeyRound, MapPin } from 'lucide-react-native';
 import { useState } from 'react';

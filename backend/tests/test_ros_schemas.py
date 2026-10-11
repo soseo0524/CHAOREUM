@@ -14,6 +14,7 @@ NOW = datetime.now(timezone.utc)
 SAMPLES = {
     "/charging/request": dict(request_id=U(), vehicle_id="CAR_01", desired_finish_at=(NOW + timedelta(hours=3)).isoformat(), target_soc=80, min_soc=60, battery_kwh=60, max_charge_kw=11),
     "/charging/cancel": dict(request_id=U(), vehicle_id="CAR_01", requested_by="user"),
+    "/vehicle/exit": dict(exit_id=U(), vehicle_id="CAR_01", request_id=None, requested_by="user"),
     "/admin/command": dict(command_id=U(), action="reassign", vehicle_id="CAR_01", request_id=U(), charger_id="CHARGER_02", reason="점검", admin_id=U()),
     "/emergency_stop": dict(action="STOP", reason="장애물", issued_by=U(), issued_at=NOW.isoformat()),
     "/vehicle_task": dict(task_id=U(), request_id=U(), vehicle_id="CAR_01", type="MOVE_TO_PARKING", target_id="PARKING_02", target_pose=dict(x=12.3, y=4.8, yaw=1.57)),
@@ -25,7 +26,7 @@ SAMPLES = {
 
 
 def test_every_topic_has_sample():
-    assert set(SAMPLES) == set(TOPICS) and len(TOPICS) == 9
+    assert set(SAMPLES) == set(TOPICS) and len(TOPICS) == 10
 
 
 @pytest.mark.parametrize("topic", list(SAMPLES))

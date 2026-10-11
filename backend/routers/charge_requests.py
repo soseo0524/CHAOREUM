@@ -11,7 +11,7 @@ from deps import CurrentUser, require_user
 from errors import ApiError
 from ros_schemas.messages import ChargingCancelMsg, ChargingRequestMsg
 from schemas.charge_requests import ChargeRequestCreate, ChargeRequestCreateResponse, ChargeRequestPatch, ChargeRequestPatchResponse
-from schemas.common import ChargeRequestStatus as S, ErrorCode
+from schemas.common import ChargeRequestStatus as S, ErrorCode, VehicleState
 from services import estimate, notify_queue_changes, parking_areas, queue_order, request_out, zone_availability
 from state import dispatch, ros
 
@@ -54,6 +54,10 @@ def create(body: ChargeRequestCreate, resp: Response, u: CurrentUser = Depends(r
         raise ApiError(422, ErrorCode.VEHICLE_NOT_ASSIGNED, "관리자가 차량을 배정하는 중입니다(배정 대기).")
     if repo.current_consent(db, u.id) is None:
         raise ApiError(403, ErrorCode.CONSENT_REQUIRED, "위임 동의가 필요합니다.")
+    st = db.get(m.VehicleStateRow, v.id)
+    if repo.active_exit(db, v.id) or (st and st.state in (VehicleState.MOVING_TO_EXIT, VehicleState.EXITED)):
+        # 관제는 출차한 차량을 재시작 전까지 배차하지 않는다(요청을 받아 두기만 하고 취소도 끝나지 않음)
+        raise ApiError(409, ErrorCode.VEHICLE_EXITED, "출차한 차량이에요. 주차장에 다시 들어온 뒤에 충전을 요청할 수 있어요.")
     if not body.dry_run and repo.active_request(db, v.id):
         raise ApiError(409, ErrorCode.ACTIVE_REQUEST_EXISTS, "이미 진행 중인 충전 요청이 있습니다.")
     _check_zone(db, body.parking_zone_id)

@@ -300,5 +300,3 @@ function AreaBlock({ a, on, onPress }: { a: AreaSummary; on: boolean; onPress: (
     </Pressable>
   );
 }
-
-/** 구역 안 맵: 지도처럼 확대·이동. 빈자리는 비어 있고, 차 있는 자리에는 차가 있다. */

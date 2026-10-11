@@ -1,4 +1,4 @@
-// 08.01 알림함
+// 09.01 알림함
 import { router, useFocusEffect } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useCallback, useState } from 'react';

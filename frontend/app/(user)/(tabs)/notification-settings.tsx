@@ -1,4 +1,4 @@
-// 06.03 알림 설정
+// 07.03 알림 설정
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, View } from 'react-native';

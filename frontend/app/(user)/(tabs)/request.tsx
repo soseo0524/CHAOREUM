@@ -1,4 +1,4 @@
-// 02.01 충전 요청 / 02-A.04 접수된 요청 수정 / 02.04 위임 동의 시트
+// 02.01 충전 요청 / 02-A.03 접수된 요청 수정 / 02.03 위임 동의 시트
 import Slider from '@react-native-community/slider';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BatteryCharging, FileText, KeyRound, MapPin } from 'lucide-react-native';
@@ -257,7 +257,7 @@ export default function Request() {
         onDone={(d) => (setFinish(d), setTimeSheet(false))}
       />
 
-      {/* 02.02 전체 지도 → 02.03 구역 안 맵 */}
+      {/* 02.02 전체 지도(구역만 고름) */}
       <ParkingMap
         visible={mapOpen}
         selected={area}
@@ -265,7 +265,7 @@ export default function Request() {
         onPick={(a) => (setArea(a as ParkingArea | null), setMapOpen(false))}
       />
 
-      {/* 02.04 위임 동의 시트 */}
+      {/* 02.03 위임 동의 시트 */}
       <Modal visible={sheet} transparent animationType="slide" onRequestClose={() => setSheet(false)}>
         <Pressable style={{ flex: 1, backgroundColor: '#000000B3' }} onPress={() => setSheet(false)} />
         <View

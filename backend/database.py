@@ -13,12 +13,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite://"  # 기본: 메모리 SQLite(개발·테스트). 운영은 Supabase Postgres URL
+# 기본: 메모리 SQLite(개발·테스트). 운영은 Supabase Postgres URL.
+# 관제 게이트웨이를 붙이면(ROS_MODE=gateway) 수신 스레드와 API 요청이 동시에 DB를 쓰는데, 메모리 DB는 연결 하나를
+# 모든 스레드가 같이 써서 드라이버가 죽는다(SIGSEGV) → 이때는 파일 SQLite(backend/dev.db, 스레드마다 연결)를 쓴다.
+_DEV_FILE_DB = "sqlite:///" + os.path.join(os.path.dirname(os.path.abspath(__file__)), "dev.db")
+DATABASE_URL = os.getenv("DATABASE_URL") or (_DEV_FILE_DB if os.getenv("ROS_MODE") == "gateway" else "sqlite://")
 
 
 def _make_engine(url: str):
-    if url.startswith("sqlite"):
+    if url in ("sqlite://", "sqlite:///:memory:"):  # 메모리 DB는 연결이 끊기면 사라지므로 연결 하나를 같이 쓴다
         return create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    if url.startswith("sqlite"):
+        return create_engine(url, connect_args={"check_same_thread": False, "timeout": 15})
     return create_engine(url, pool_pre_ping=True)
 
 

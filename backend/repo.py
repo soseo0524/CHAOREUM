@@ -56,6 +56,12 @@ def active_request(db: Session, vehicle_id: uuid.UUID) -> m.ChargeRequest | None
     return db.scalars(select(m.ChargeRequest).where(m.ChargeRequest.vehicle_id == vehicle_id, m.ChargeRequest.status.in_(ACTIVE_REQUEST_STATUSES))).first()
 
 
+def active_exit(db: Session, vehicle_id: uuid.UUID) -> m.ExitRequest | None:
+    from schemas.common import ACTIVE_EXIT_STATUSES
+
+    return db.scalars(select(m.ExitRequest).where(m.ExitRequest.vehicle_id == vehicle_id, m.ExitRequest.status.in_(ACTIVE_EXIT_STATUSES))).first()
+
+
 def auto_assign(db: Session, v: m.Vehicle) -> bool:
     """settings.auto_assign_ros_ids 중 다른 차량이 쓰지 않는 첫 ID를 붙인다. 남은 ID가 없으면 배정 대기로 둔다. 호출자가 commit."""
     from config import settings
