@@ -1,6 +1,8 @@
 import asyncio
 import hmac
+import json
 import logging
+from collections import deque
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -47,14 +49,43 @@ async def ws_gateway(ws: WebSocket):
         await ws.close(code=4401)
         return
     await ros.attach(ws, asyncio.get_running_loop())
+    # 관제는 1초마다 상태를 보내는데 반영(DB)이 그보다 느리면 메시지가 쌓여 앱이 점점 지난 상태를 보여 준다.
+    # 받기와 반영을 나눠, 반영이 밀렸으면 지난 상태는 건너뛰고 가장 최근 상태만 반영한다(요청 응답은 모두 순서대로).
+    inbox: deque[tuple[bool, str]] = deque()  # (관제 상태 메시지인지, 원문)
+    wake = asyncio.Event()
+
+    async def apply():
+        while True:
+            await wake.wait()
+            wake.clear()
+            while inbox:
+                is_status, raw = inbox.popleft()
+                if is_status and any(s for s, _ in inbox):
+                    continue
+                try:
+                    await asyncio.to_thread(ros.receive, raw)  # DB 작업이 있으므로 이벤트 루프 밖에서
+                except Exception:  # 잘못된 메시지 하나가 연결을 끊지 않게
+                    logging.getLogger("gateway").exception("gateway message rejected")
+
+    worker = asyncio.create_task(apply())
     try:
         while True:
             raw = await ws.receive_text()
-            try:
-                await asyncio.to_thread(ros.receive, raw)  # DB 작업이 있으므로 이벤트 루프 밖에서
-            except Exception:  # 잘못된 메시지 하나가 연결을 끊지 않게
-                logging.getLogger("gateway").exception("gateway message rejected")
+            inbox.append((_is_status(raw), raw))  # 받는 즉시 차량 신호 시각을 남긴다(_is_status)
+            wake.set()
     except WebSocketDisconnect:
         pass
     finally:
+        worker.cancel()  # 끊긴 선에 쌓인 지난 메시지는 반영하지 않는다
         ros.detach(ws)
+
+
+def _is_status(raw: str) -> bool:
+    try:
+        d = json.loads(raw)
+    except ValueError:
+        return False
+    if not isinstance(d, dict) or d.get("type") != "central_status":
+        return False
+    ros.mark_heard(d.get("payload") or {})
+    return True

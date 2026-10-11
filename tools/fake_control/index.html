@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>가짜 관제</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #171e26; --line: #26313d; --text: #e6edf3; --sub: #8b98a5;
+    --a: #2f6fed; --b: #1f9d63; --c: #8a5cf6; --charger: #f2a516; --danger: #e5484d; --ok: #2fbf71;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, "Apple SD Gothic Neo", sans-serif; }
+  header { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; }
+  .pill { padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .pill.on { background: #123c27; color: var(--ok); } .pill.off { background: #3b1517; color: var(--danger); }
+  .sub { color: var(--sub); font-size: 12px; }
+  header label { display: flex; align-items: center; gap: 6px; color: var(--sub); font-size: 12px; }
+  input[type=number] { width: 58px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+  main { display: grid; grid-template-columns: minmax(420px, 1.25fr) minmax(360px, 1fr); gap: 14px; padding: 14px 18px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .card h2 { font-size: 13px; color: var(--sub); margin: 0 0 8px; font-weight: 600; }
+  svg { width: 100%; height: auto; display: block; background: #0b1015; border-radius: 8px; }
+  .slot { stroke: #0b1015; stroke-width: .12; cursor: pointer; }
+  .slot:hover { filter: brightness(1.35); }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--sub); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .vehicles { display: flex; flex-direction: column; gap: 10px; }
+  .v-head { display: flex; align-items: center; gap: 8px; }
+  .v-head b { font-size: 15px; }
+  .state { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #22303d; }
+  .state.CHARGING, .state.CHARGE_DONE { background: #3a2c08; color: var(--charger); }
+  .state.PARKED { background: #123c27; color: var(--ok); }
+  .state.FAULT, .state.OFFLINE { background: #3b1517; color: var(--danger); }
+  .state.EXITING, .state.EXITED { background: #2a1f4d; color: #b9a2ff; }
+  .socbar { flex: 1; height: 6px; background: #22303d; border-radius: 3px; overflow: hidden; }
+  .socbar > div { height: 100%; background: var(--ok); transition: width .3s; }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .box { margin-top: 8px; padding: 8px 10px; background: #111820; border-radius: 8px; font-size: 13px; }
+  .box .k { color: var(--sub); }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  button { background: var(--a); color: white; border: 0; border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  button.danger { background: var(--danger); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); font-weight: 500; }
+  button.ghost.on { border-color: var(--charger); color: var(--charger); }
+  button:disabled { background: #2a333d; color: #6b7783; cursor: not-allowed; }
+  .why { font-size: 11px; color: var(--sub); }
+  .alert { border: 1px solid var(--charger); }
+  .log { max-height: 260px; overflow: auto; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  .log div { padding: 2px 0; border-bottom: 1px solid #1c252e; }
+  .log .in { color: #7cc4ff; } .log .out { color: var(--ok); } .log .warn { color: var(--danger); } .log .act { color: var(--charger); }
+</style>
+</head>
+<body>
+<header>
+  <h1>가짜 관제</h1>
+  <span id="conn" class="pill off">연결 안 됨</span>
+  <span id="backend" class="sub"></span>
+  <span style="flex:1"></span>
+  <label>이동 시간(초) <input id="travel" type="number" min="0.5" step="0.5" /></label>
+  <label>충전 속도(%/초) <input id="rate" type="number" min="0.1" step="0.5" /></label>
+  <button id="pause" class="ghost">관제 신호 중지</button>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <h2>주차장 (칸을 누르면 막기/풀기 — 만차 시험용)</h2>
+      <svg id="map"></svg>
+      <div class="legend">
+        <span><i style="background:var(--a)"></i>A구역</span><span><i style="background:var(--b)"></i>B구역</span>
+        <span><i style="background:var(--c)"></i>C구역(출차)</span><span><i style="background:var(--charger)"></i>충전기</span>
+        <span><i style="background:#444"></i>막힌 칸</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>통신 기록 (파랑=앱→관제, 초록=관제→서버, 주황=버튼)</h2>
+      <div id="log" class="log"></div>
+    </div>
+  </section>
+  <section class="vehicles" id="vehicles"></section>
+</main>
+<script>
+const STATE_KO = {
+  WAITING: '대기', ASSIGNED: '배정됨', MOVING_TO_CHARGER: '충전소로 이동', ARRIVED_AT_CHARGER: '충전소 도착',
+  CHARGING: '충전 중', CHARGE_DONE: '충전 완료', MOVING_TO_PARKING: '주차 구역으로 이동', PARKED: '주차 완료',
+  EXITING: '출차 중', EXITED: '출차 완료', FAULT: '고장', OFFLINE: '신호 없음',
+};
+const REQ_KO = { ACTIVE: '접수', DISPATCHED: '충전소 배차', CHARGING: '충전 단계', COMPLETED: '완료', CANCELED: '취소됨', FAILED: '실패' };
+const AREA_COLOR = { A: '#2f6fed', B: '#1f9d63', C: '#8a5cf6' };
+const S = 22; // 1m = 22px
+let slots = [], st = null, offset = 0, box = null;
+const svg = document.getElementById('map');
+const NS = 'http://www.w3.org/2000/svg';
+const P = ([x, y]) => [(x - box.x0) * S, (box.y1 - y) * S]; // y를 뒤집어 위에서 본 지도로
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  return r.json();
+}
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+async function drawMap() {
+  slots = (await api('/api/map')).slots;
+  const xs = slots.flatMap(s => s.corners.map(c => c[0])), ys = slots.flatMap(s => s.corners.map(c => c[1]));
+  box = { x0: Math.min(...xs) - 3, x1: Math.max(...xs) + 3, y0: Math.min(...ys) - 3, y1: Math.max(...ys) + 3 };
+  svg.setAttribute('viewBox', `0 0 ${(box.x1 - box.x0) * S} ${(box.y1 - box.y0) * S}`);
+  const g = el('g', { id: 'slots' }, svg);
+  for (const s of slots) {
+    const pts = s.corners.map(c => P(c).join(',')).join(' ');
+    const poly = el('polygon', { points: pts, class: 'slot', id: 'slot-' + s.id }, g);
+    poly.addEventListener('click', () => api('/api/settings', { block: s.id }).then(refresh));
+    const cx = s.corners.reduce((a, c) => a + c[0], 0) / 4, cy = s.corners.reduce((a, c) => a + c[1], 0) / 4;
+    const [tx, ty] = P([cx, cy]);
+    const t = el('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, 'pointer-events': 'none', opacity: .8 }, g);
+    t.textContent = s.charger ? '⚡' : s.id;
+    s.depth = Math.atan2(-(s.corners[3][1] - s.corners[0][1]), s.corners[3][0] - s.corners[0][0]) * 180 / Math.PI;
+  }
+  el('g', { id: 'cars' }, svg);
+}
+
+function paintSlots() {
+  const blocked = new Set(st.blocked);
+  const targets = new Set(st.vehicles.filter(v => v.drive).map(v => v.drive.to_slot));
+  for (const s of slots) {
+    const p = document.getElementById('slot-' + s.id);
+    p.setAttribute('fill', blocked.has(s.id) ? '#444' : s.charger ? '#f2a516' : (AREA_COLOR[s.area] || '#3a4653'));
+    p.setAttribute('fill-opacity', blocked.has(s.id) ? 1 : .45);
+    p.setAttribute('stroke', targets.has(s.id) ? '#fff' : '#0b1015');
+    p.setAttribute('stroke-width', targets.has(s.id) ? 3 : 1);
+  }
+}
+
+function carPose(v) {
+  const now = Date.now() / 1000 + offset;
+  if (v.drive) {
+    const d = v.drive, k = Math.min(1, Math.max(0, (now - d.depart) / (d.arrive - d.depart)));
+    const x = d.from[0] + (d.to[0] - d.from[0]) * k, y = d.from[1] + (d.to[1] - d.from[1]) * k;
+    return { x, y, deg: Math.atan2(-(d.to[1] - d.from[1]), d.to[0] - d.from[0]) * 180 / Math.PI };
+  }
+  const s = slots.find(s => s.id === v.slot);
+  return { x: v.pos[0], y: v.pos[1], deg: s ? s.depth : 0 };
+}
+
+function paintCars() {
+  if (!st) return;
+  const g = document.getElementById('cars');
+  for (const v of st.vehicles) {
+    let c = document.getElementById('car-' + v.id);
+    if (!c) {
+      c = el('g', { id: 'car-' + v.id }, g);
+      const img = el('image', { width: 4.4 * S, height: 2.2 * S, x: -2.2 * S, y: -1.1 * S, preserveAspectRatio: 'none' }, c);
+      img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `/img/ev0${v.id.slice(-1)}_top.png`);
+      img.setAttribute('href', `/img/ev0${v.id.slice(-1)}_top.png`);
+      el('rect', { class: 'ring', x: -2.4 * S, y: -1.3 * S, width: 4.8 * S, height: 2.6 * S, rx: 8, fill: 'none', 'stroke-width': 3 }, c);
+      const label = el('text', { class: 'label', 'text-anchor': 'middle', fill: '#fff', 'font-size': 14, 'font-weight': 700, y: -1.6 * S }, c);
+      label.textContent = v.id;
+    }
+    const p = carPose(v), [px, py] = P([p.x, p.y]);
+    c.setAttribute('transform', `translate(${px},${py})`);
+    c.querySelector('image').setAttribute('transform', `rotate(${-p.deg})`);
+    c.querySelector('.ring').setAttribute('transform', `rotate(${-p.deg})`);
+    const ring = v.estop ? '#e5484d' : !v.online ? '#8b98a5' : v.gw_state === 'CHARGING' ? '#f2a516' : v.drive ? '#7cc4ff' : 'transparent';
+    c.querySelector('.ring').setAttribute('stroke', ring);
+    c.setAttribute('opacity', v.exit && v.exit.arrived ? .45 : 1);
+  }
+}
+
+function drawCars() { paintCars(); requestAnimationFrame(drawCars); }
+
+function btn(label, cls, onclick, disabled, title) {
+  const b = document.createElement('button');
+  b.textContent = label; if (cls) b.className = cls; b.disabled = !!disabled; if (title) b.title = title;
+  b.onclick = onclick; return b;
+}
+
+function act(vehicle, action, value) { return api('/api/action', { vehicle, action, value }).then(refresh); }
+
+function renderVehicles() {
+  const root = document.getElementById('vehicles');
+  root.innerHTML = '';
+  for (const v of st.vehicles) {
+    const card = document.createElement('div');
+    card.className = 'card' + (v.exit && v.exit.pending ? ' alert' : '');
+    const where = v.drive ? `이동 중 → ${v.drive.to_slot === undefined ? '' : (slots.find(s => s.id === v.drive.to_slot)?.charger ? '충전기' : 'PARKING_' + v.drive.to_slot)}`
+      : (v.location || '-');
+    card.innerHTML = `
+      <div class="v-head"><b>${v.id}</b><span class="state ${v.gw_state}">${STATE_KO[v.gw_state] || v.gw_state}</span>
+        <span class="sub">${where}</span></div>
+      <div class="row"><span class="sub">SOC ${v.soc.toFixed(0)}%</span><div class="socbar"><div style="width:${v.soc}%"></div></div></div>`;
+    const r = v.request;
+    const info = document.createElement('div');
+    info.className = 'box';
+    if (v.exit && v.exit.pending) info.innerHTML = '<b style="color:var(--charger)">앱에서 출차 요청이 왔어요</b>';
+    else if (v.exit) info.innerHTML = `<span class="k">출차</span> PARKING_${v.exit.slot} ${v.exit.arrived ? '도착(출차 완료)' : '이동 중'}`;
+    else if (r) info.innerHTML = `<span class="k">요청</span> ${r.request_id.slice(0, 8)} · <b>${REQ_KO[r.status] || r.status}</b>${r.cancel_requested ? ' · <b style="color:var(--danger)">취소 요청됨</b>' : ''}<br>
+      <span class="k">목표</span> ${r.target_soc}% · <span class="k">희망 구역</span> ${r.preferred_parking_zone || '자동'}
+      ${r.parking_purpose ? ` · <span class="k">${{ WAIT: '대기 칸', FINAL: '주차 칸', EXIT: '취소 칸' }[r.parking_purpose]}</span> ${r.assigned_parking_slot}${r.parking_arrived ? ' 도착' : ''}` : ''}`;
+    else info.innerHTML = `<span class="k">요청 없음</span>${v.last_request ? ` · 마지막 요청: ${REQ_KO[v.last_request.status] || v.last_request.status}` : ''}`;
+    card.appendChild(info);
+    const steps = document.createElement('div'); steps.className = 'btns';
+    for (const a of v.actions) {
+      const b = btn(a.label, a.kind === 'danger' ? 'danger' : '', () => act(v.id, a.action), !a.enabled, a.why);
+      steps.appendChild(b);
+      if (!a.enabled && a.why) { const w = document.createElement('span'); w.className = 'why'; w.textContent = `(${a.why})`; steps.appendChild(w); }
+    }
+    if (!v.actions.length) { const w = document.createElement('span'); w.className = 'why'; w.textContent = v.drive ? '이동 중…' : '누를 단계 없음 — 앱에서 요청을 보내 보세요'; steps.appendChild(w); }
+    card.appendChild(steps);
+    const tools = document.createElement('div'); tools.className = 'btns';
+    tools.appendChild(btn(v.auto ? '자동 진행 켜짐' : '자동 진행', 'ghost' + (v.auto ? ' on' : ''), () => act(v.id, 'auto')));
+    tools.appendChild(btn(v.estop ? '고장 해제' : '고장(비상정지)', 'ghost' + (v.estop ? ' on' : ''), () => act(v.id, 'fault')));
+    tools.appendChild(btn(v.online ? '신호 끊기' : '신호 복구', 'ghost' + (!v.online ? ' on' : ''), () => act(v.id, 'offline')));
+    tools.appendChild(btn('SOC 설정', 'ghost', () => { const x = prompt(`${v.id} SOC(%)`, v.soc.toFixed(0)); if (x !== null) act(v.id, 'soc', x); }));
+    card.appendChild(tools);
+    root.appendChild(card);
+  }
+}
+
+function renderLog() {
+  document.getElementById('log').innerHTML = st.log.map(l =>
+    `<div class="${l.kind}">${new Date(l.t * 1000).toLocaleTimeString('ko-KR', { hour12: false })} ${l.text}</div>`).join('');
+}
+
+let editing = false;
+for (const id of ['travel', 'rate']) {
+  const i = document.getElementById(id);
+  i.addEventListener('focus', () => editing = true);
+  i.addEventListener('change', () => { editing = false; api('/api/settings', id === 'travel' ? { travel_s: i.value } : { charge_rate: i.value }); });
+}
+document.getElementById('pause').onclick = () => api('/api/settings', { paused: !st.paused }).then(refresh);
+
+async function refresh() {
+  st = await api('/api/state');
+  offset = st.now - Date.now() / 1000;
+  const c = document.getElementById('conn');
+  c.textContent = st.connected ? (st.paused ? '연결됨 · 신호 중지' : '서버 연결됨') : '서버 연결 안 됨';
+  c.className = 'pill ' + (st.connected && !st.paused ? 'on' : 'off');
+  document.getElementById('backend').textContent = st.backend;
+  const p = document.getElementById('pause'); p.textContent = st.paused ? '관제 신호 재개' : '관제 신호 중지'; p.classList.toggle('on', st.paused);
+  if (!editing) { document.getElementById('travel').value = st.travel_s; document.getElementById('rate').value = st.charge_rate; }
+  paintSlots(); paintCars(); renderVehicles(); renderLog();
+}
+
+drawMap().then(() => { refresh(); setInterval(refresh, 700); requestAnimationFrame(drawCars); });
+</script>
+</body>
+</html>

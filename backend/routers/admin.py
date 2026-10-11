@@ -42,7 +42,7 @@ def overview(db: Session = Depends(get_db)):
     chargers = list(db.scalars(select(m.Charger)))
     active = db.scalars(select(m.ChargeRequest.id).where(m.ChargeRequest.status.in_(ACTIVE_REQUEST_STATUSES))).all()
     return AdminOverview(
-        server_time=repo.now(), vehicles_by_state=dict(by_state), vehicles_offline=sum(1 for v in vehicles if not is_online(states.get(v.id))),
+        server_time=repo.now(), vehicles_by_state=dict(by_state), vehicles_offline=sum(1 for v in vehicles if not is_online(states.get(v.id), v.ros_vehicle_id)),
         chargers_by_state=dict(Counter(ch_states.get(c.id) for c in chargers if ch_states.get(c.id))), active_requests=len(active),
         queue_length=runtime.queue_length, fault_count=by_state.get(VehicleState.FAULT, 0), emergency_stop_active=_emergency(db),
         central_online=runtime.last_central_at is not None and (repo.now() - runtime.last_central_at).total_seconds() <= 5)

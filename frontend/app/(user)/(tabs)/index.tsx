@@ -328,11 +328,15 @@ export default function Home() {
       titleColor = C.active;
       showCharge = !!v.charge;
       const at = done ? v.exit?.completed_at : v.exit?.created_at;
-      metrics[1] = { label: '목표', value: req ? String(req.target_soc) : '—', unit: req ? '%' : undefined };
+      const target = req?.target_soc ?? v.last_request?.target_soc; // 출차하면 요청이 끝나므로 마지막 요청의 목표
+      metrics[1] = { label: '목표', value: target != null ? String(target) : '—', unit: target != null ? '%' : undefined };
       metrics[2] = at ? { label: done ? '출차 완료' : '출차 접수', value: clock(at).hm, unit: clock(at).ap } : { label: '출차', value: '—' };
       body = <Steps steps={exitSteps(done ? 3 : hs === HomeState.MOVING_TO_EXIT ? 2 : 1, v.exit?.zone_id ? placeText(v.exit, '빈자리') : '')} />;
       footer = done ? (
-        <Button kind="outline" label="충전 요청하기" onPress={goRequest} />
+        <View style={{ gap: 6 }}>
+          <T style={{ color: C.sub, fontSize: 13, textAlign: 'center' }}>이용해 주셔서 감사합니다.</T>
+          <Button label="이용 내역 보기" onPress={() => router.push('/history')} />
+        </View>
       ) : (
         <Button kind="outline" label="관제에 문의하기" onPress={contactCenter} />
       );

@@ -55,6 +55,11 @@ class GatewayRosBridge:
         self._ws = None
         self._loop = None
         self._cb: Callable | None = None
+        import threading
+
+        self.heard: dict[str, float] = {}  # ros vehicle_id → 관제 상태를 받은 시각(monotonic). 반영(DB)이 늦어도 신호는 살아 있다고 본다
+        self._last_at = None  # 마지막으로 반영한 관제 상태 시각(이보다 오래된 상태는 버린다)
+        self._at_lock = threading.Lock()
 
     def publish(self, topic: str, msg: BaseModel) -> None:
         data = to_ros_json(msg)
@@ -93,7 +98,16 @@ class GatewayRosBridge:
         return True
 
     async def attach(self, ws, loop) -> None:
+        old = self._ws
         self._ws, self._loop, self.connected = ws, loop, True
+        if old is not None and old is not ws:  # 게이트웨이는 하나만: 새로 붙으면 이전 선을 끊는다(두 관제 상태가 섞이지 않게)
+            import logging
+
+            logging.getLogger("gateway").warning("new gateway connected; closing the previous one")
+            try:
+                await old.close(code=4409)
+            except Exception:  # 이미 끊긴 선
+                pass
         while self.pending:  # 끊겨 있던 동안 쌓인 것 먼저 전달
             item = self._wire(*self.pending.popleft())
             if item is not None:
@@ -119,6 +133,28 @@ class GatewayRosBridge:
                 msg.setdefault("requests", []).append({"request_id": rid, "vehicle_id": self.vehicle_of[rid], "status": "CANCELLED"})
                 self.cancel_sent.pop(rid, None)
 
+    def mark_heard(self, payload: dict) -> None:
+        import time
+
+        t = time.monotonic()
+        for v in payload.get("vehicles") or []:
+            if isinstance(v, dict) and v.get("vehicle_id"):
+                self.heard[str(v["vehicle_id"])] = t
+
+    def _stale(self, at) -> bool:
+        """이미 반영한 것보다 오래된 관제 상태인지. 재접속 등으로 지난 상태가 늦게 오면 앱이 이전 단계로 돌아가 보이므로 버린다."""
+        from datetime import datetime
+
+        try:
+            t = datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        with self._at_lock:
+            if self._last_at is not None and t < self._last_at:
+                return True
+            self._last_at = t
+            return False
+
     def receive(self, raw: str) -> None:
         import json
 
@@ -129,6 +165,8 @@ class GatewayRosBridge:
 
         if d.get("type") == "central_status":
             payload = d.get("payload") or {}
+            if self._stale(payload.get("at")):
+                return
             msg = status_from_controller(payload, self.exit_of)
             self._finish_unknown_cancels(payload, msg)
             self._cb(parse_topic("/central_status", json.dumps(msg)))

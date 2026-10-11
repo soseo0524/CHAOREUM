@@ -770,3 +770,30 @@ def test_parked_car_can_exit_after_cancel_and_no_parked_notice_without_request()
     assert v["home_state"] == "CANCELLED" and v["can_exit"] is True  # 취소 뒤 주차된 차도 출차 가능
     _send(None, "WAITING"); _send(None, "PARKED")  # 관제 신호가 흔들려도
     assert [n for n in client.get("/me/notifications", headers=UH).json() if n["type"] == "PARKED"] == []
+
+
+def test_charge_session_even_if_charging_state_skipped_and_target_after_exit():
+    """관제 반영이 밀려 CHARGING을 건너뛰어도 충전 세션(충전량·금액)이 남고, 출차 뒤에도 목표 SOC가 보인다."""
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+
+    def send(state, soc, status="IN_PROGRESS", zone=None, **extra):
+        v = dict(vehicle_id="CAR_01", state=state, soc=soc, last_seen_at=iso(), **extra)
+        if zone:
+            v["zone_id"] = zone
+        ros.inject_central_status(json.dumps(dict(at=iso(), vehicles=[v], requests=[dict(request_id=rid, vehicle_id="CAR_01", status=status)])))
+        return client.get("/me/status", headers=UH).json()["vehicles"][0]
+
+    send("MOVING_TO_CHARGER", 30)
+    v = send("CHARGE_DONE", 80, zone="CHARGER_01")  # CHARGING 없이 바로 충전 완료(충전기 정보는 위치로)
+    assert v["home_state"] == "CHARGE_DONE" and v["charge"] and v["charge"]["energy_kwh"] == 30.0  # 60kWh × 50%
+    sess = client.get("/me/sessions", headers=UH).json()
+    assert len(sess) == 1 and sess[0]["charger_id"] == "CHARGER_01" and sess[0]["start_soc"] == 30 and sess[0]["end_soc"] == 80
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 201
+    ex = ros.last("/vehicle/exit")["exit_id"]
+    ros.inject_central_status(json.dumps(dict(at=iso(), vehicles=[dict(vehicle_id="CAR_01", state="EXITED", soc=80, last_seen_at=iso())],
+                                              exits=[dict(exit_id=ex, vehicle_id="CAR_01", status="COMPLETED")])))
+    v = client.get("/me/status", headers=UH).json()["vehicles"][0]
+    assert v["home_state"] == "EXITED" and v["active_request"] is None
+    assert v["last_request"]["target_soc"] == 80 and v["charge"]["energy_kwh"] == 30.0
+    assert len(client.get("/me/sessions", headers=UH).json()) == 1  # 세션은 하나만

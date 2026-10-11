@@ -26,6 +26,7 @@
 - `docs/` 기능 명세·관제 인터페이스·관리자 웹 API·도메인 설정
 - `design/aiot-user-app.pen` Pencil 디자인 원본
 - `macaron8_AIOT-main/` 관제 코드 복사본(위 참고). 그 안의 `install/`, `log/`, `.venv-control/`은 읽지 말 것
+- `tools/fake_control/` 가짜 관제(웹 화면 http://127.0.0.1:8090): 진짜 게이트웨이처럼 `/ws/gateway`에 붙어 버튼으로 단계 진행. ROS 없이 시연·앱 확인용, 진짜 관제와 동시 연결 금지. 실행 `backend/.venv/bin/python tools/fake_control/server.py --backend <wss://.../ws/gateway> --token <GATEWAY_TOKEN>`
 
 ## 규칙
 - Python 3.10 이상.

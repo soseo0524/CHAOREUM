@@ -123,7 +123,7 @@ def test_full_flow_over_controller_gateway(gw):
             s.send_text(json.dumps({"type": "central_status", "payload": payload(raw)}))
 
         send(raw_status(rid, "ACTIVE"))
-        v = wait_home(lambda v: v["home_state"] == "QUEUED")
+        v = wait_home(lambda v: v["home_state"] == "QUEUED" and v["state"] == "WAITING")  # 요청만 있어도 QUEUED라 관제 상태 반영까지 기다린다
         assert v["state"] == "WAITING" and v["zone_id"] == "PARKING_33"
         av = client.get("/admin/vehicles", headers=AH).json()[0]
         assert av["pose"] == {"x": 1.0, "y": 2.0, "yaw": 0.5}
@@ -257,7 +257,7 @@ def test_exit_after_charging_over_controller_gateway(gw):
         s.send_text(json.dumps({"type": "request_result", "vehicle_id": EV, "payload": {
             "vehicle_id": EV, "task_id": "EXIT_EV-01_x", "assigned_parking_zone": "C", "assigned_parking_slot": slot,
             "operation": "EXIT", "status": "EXITING", "accepted": True}}))
-        v = wait_home(lambda v: v["home_state"] == "MOVING_TO_EXIT")
+        v = wait_home(lambda v: v["home_state"] == "MOVING_TO_EXIT" and v["active_request"] is None)  # 한 번에 반영되는 두 값을 다 볼 때까지
         assert v["exit"]["zone_id"] == f"PARKING_{n:02d}" and v["exit"]["area"] == "C" and v["exit"]["seat_no"] == n
         assert v["active_request"] is None  # 서버가 충전 요청을 끝냄
 
@@ -316,3 +316,22 @@ def test_request_rejected_because_vehicle_exited(gw):
         # 차량 상태를 아직 못 받아 홈은 NO_DATA일 수 있다 → 마지막 요청 결과로 확인
         v = wait_home(lambda v: (v["last_request"] or {}).get("status") == "FAILED")
         assert v["active_request"] is None and "다시 들어온 뒤" in v["last_request"]["failure_reason"]
+
+
+def test_older_status_is_ignored_and_new_gateway_replaces_old(gw):
+    rid = start()
+    first = dict(raw_status(rid, "COMPLETED", vehicle_state="PARKED", location="PARKING_5", soc=80, return_task_id="R",
+                            parking_purpose="FINAL", parking_arrived=True, assigned_parking_slot="PARKING_5"))
+    older = dict(raw_status(rid, "CHARGING", vehicle_state="PARKED", location="CHARGER_01", soc=60, charger_state="RESERVED"))
+    older["timestamp"] = first["timestamp"] - 30  # 재접속 등으로 늦게 도착한 지난 상태
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        s.receive_text()
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(first)}))
+        assert wait_home(lambda v: v["home_state"] == "PARKED")["home_state"] == "PARKED"
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(older)}))
+        time.sleep(0.3)
+        assert home()["home_state"] == "PARKED"  # 지난 상태로 되돌아가지 않는다
+        with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}):
+            with pytest.raises(WebSocketDisconnect) as e:  # 새 게이트웨이가 붙으면 이전 선은 끊긴다
+                s.receive_text()
+            assert e.value.code == 4409

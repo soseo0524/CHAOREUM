@@ -72,6 +72,7 @@ class LastRequest(ApiModel):
     id: UUID
     status: ChargeRequestStatus
     ended_at: AwareDatetime
+    target_soc: int = Field(description="그 요청의 목표 SOC(출차 완료 화면 등에서 표시)")
     failure_reason: str | None = Field(None, description="FAILED일 때 사유. 관제가 준 값이 없으면 기본 문구")
 
 

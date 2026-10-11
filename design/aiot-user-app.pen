@@ -40953,26 +40953,68 @@
             },
             {
               "type": "frame",
-              "id": "lq4rp",
-              "name": "Secondary Button",
+              "id": "f5SDl",
+              "name": "Footer",
               "width": "fill_container",
-              "height": 48,
-              "fill": "#00000000",
-              "cornerRadius": 9999,
-              "stroke": "#ffffff4d",
-              "strokeWidth": 1,
-              "justifyContent": "center",
-              "alignItems": "center",
+              "layout": "vertical",
+              "gap": 6,
               "children": [
                 {
                   "type": "text",
-                  "id": "k1nacp",
-                  "name": "Label",
-                  "fill": "#ffffff",
-                  "content": "충전 요청하기",
+                  "id": "Cfez1",
+                  "name": "Thanks",
+                  "fill": "$sub",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "이용해 주셔서 감사합니다.",
+                  "textAlign": "center",
                   "fontFamily": "$font",
-                  "fontSize": 14,
-                  "fontWeight": "500"
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "ExeS4",
+                  "name": "Primary Button",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "#ffffff",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CcOym",
+                      "name": "Label",
+                      "fill": "#000000",
+                      "content": "이용 내역 보기",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kCjmF",
+                  "name": "Ghost Button",
+                  "width": "fill_container",
+                  "height": 48,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YJVpg",
+                      "name": "Label",
+                      "fill": "$sub",
+                      "content": "새로 충전 요청하기",
+                      "fontFamily": "$font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 }
               ]
             }

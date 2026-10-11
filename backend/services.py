@@ -85,8 +85,21 @@ def _with_queue(db: Session, r: m.ChargeRequest) -> ChargeRequestOut:
     return out
 
 
-def is_online(st: m.VehicleStateRow | None) -> bool:
-    return st is not None and (now() - st.last_seen_at).total_seconds() <= settings.offline_after_s
+def is_online(st: m.VehicleStateRow | None, ros_id: str | None = None) -> bool:
+    """마지막 관제 신호 5초 이내. DB 반영이 밀려도(관제 메시지가 쌓여 지난 것은 건너뜀) 게이트웨이가 방금 그 차량 상태를
+    받았으면 살아 있다고 본다(반영 지연으로 오프라인이 깜빡이고 출차가 막히지 않게)."""
+    if st is None:
+        return False
+    if (now() - st.last_seen_at).total_seconds() <= settings.offline_after_s:
+        return True
+    if ros_id is None:
+        return False
+    import time
+
+    from state import ros
+
+    t = getattr(ros, "heard", {}).get(ros_id)
+    return t is not None and time.monotonic() - t <= settings.offline_after_s
 
 
 def cost_of(energy_kwh: float, unit_price_won: int | None) -> int:
@@ -151,7 +164,7 @@ def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest |
         return HomeState.CANCELING
     if st.state == VehicleState.FAULT:
         return HomeState.FAULT
-    if not is_online(st):
+    if not is_online(st, v.ros_vehicle_id):
         return HomeState.VEHICLE_OFFLINE
     if ex:
         return HomeState.MOVING_TO_EXIT if ex.status == ExitStatus.IN_PROGRESS or st.state == VehicleState.MOVING_TO_EXIT else HomeState.EXIT_REQUESTED
@@ -278,10 +291,10 @@ def vehicle_status(db: Session, v: m.Vehicle) -> VehicleStatus:
         wait=wait_info(ar) if hs == HomeState.QUEUED else None, can_exit=can_exit(hs, st),
         exit=exit_info(ex or le),
         home_state=hs, eta=eta_of(hs, st, db, v, ar),
-        last_request=LastRequest(id=lr.id, status=lr.status, ended_at=lr.updated_at, failure_reason=failure_reason(db, lr) if lr.status == ChargeRequestStatus.FAILED else None) if lr else None,
+        last_request=LastRequest(id=lr.id, status=lr.status, ended_at=lr.updated_at, target_soc=lr.target_soc, failure_reason=failure_reason(db, lr) if lr.status == ChargeRequestStatus.FAILED else None) if lr else None,
         last_session=last_session(db, v) if ar is None else None,
         vehicle_id=v.id, plate_no=v.plate_no, assigned=v.ros_vehicle_id is not None,
-        state=state, online=is_online(st), step=step, step_label=STEP_LABELS.get(step) if step else None,
+        state=state, online=is_online(st, v.ros_vehicle_id), step=step, step_label=STEP_LABELS.get(step) if step else None,
         soc=st.soc if st else None, zone_id=st.zone_id if st else None,
         pose=Pose(x=st.pose_x, y=st.pose_y, yaw=st.pose_yaw) if st and st.pose_x is not None and st.pose_y is not None and st.pose_yaw is not None else None, charger_id=st.charger_id if st else None,
         progress=st.progress if st else None, current_task=task, estimated_completion=st.estimated_completion if st else None,
@@ -364,17 +377,33 @@ def notice(db: Session, user_id: UUID | None, ntype: str, pref: str, title: str,
         outbox.append((n, on))
 
 
-def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbox: list | None,
-                   msg_status: dict | None = None) -> None:
-    ar = repo.active_request(db, v.id)
-    # 충전 세션: CHARGING 진입 시 열고, 벗어나면 닫는다
-    if st.state == VehicleState.CHARGING and st.charger_id and ar:
-        db.add(m.ChargeSession(request_id=ar.id, charger_id=st.charger_id, start_at=now(), start_soc=st.soc, unit_price_won=settings.unit_price_won_per_kwh))
-    elif prev == VehicleState.CHARGING:
-        sess = db.scalar(select(m.ChargeSession).where(m.ChargeSession.end_at.is_(None), m.ChargeSession.request_id == (ar.id if ar else None)).order_by(m.ChargeSession.start_at.desc()))
+_AFTER_CHARGE_START = (VehicleState.CHARGING, VehicleState.CHARGE_DONE, VehicleState.MOVING_TO_PARKING, VehicleState.PARKED)
+
+
+def _charge_session(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, prev_soc, ar: m.ChargeRequest | None,
+                    msg_status: dict | None) -> None:
+    """충전 세션: 충전 단계에 들어오면 열고, 충전 중을 벗어나면 닫는다.
+    관제 반영이 밀려 CHARGING을 건너뛰고 바로 충전 완료·주차로 와도(밀린 상태는 건너뜀) 세션을 만들어 충전량·금액이 남게 한다."""
+    if ar is None:
+        return
+    started = ar.progress_step >= 2 or (msg_status or {}).get(str(ar.id)) == ChargeRequestStatus.COMPLETED
+    has = db.scalar(select(func.count()).select_from(m.ChargeSession).where(m.ChargeSession.request_id == ar.id))
+    if st.state in _AFTER_CHARGE_START and started and not has:
+        charger = st.charger_id or db.scalar(select(m.Charger.id).order_by(m.Charger.id))
+        start_soc = prev_soc if prev_soc is not None and prev not in _AFTER_CHARGE_START else st.soc  # 건너뛰었으면 충전 전 배터리부터
+        db.add(m.ChargeSession(request_id=ar.id, charger_id=charger, start_at=now(), start_soc=start_soc, unit_price_won=settings.unit_price_won_per_kwh))
+        db.flush()
+    if st.state != VehicleState.CHARGING:
+        sess = db.scalar(select(m.ChargeSession).where(m.ChargeSession.end_at.is_(None), m.ChargeSession.request_id == ar.id))
         if sess:
             sess.end_at, sess.end_soc = now(), st.soc
             sess.energy_kwh = round(max(st.soc - sess.start_soc, 0) / 100 * v.battery_kwh, 3)
+
+
+def _on_transition(db: Session, v: m.Vehicle, st: m.VehicleStateRow, prev, outbox: list | None,
+                   msg_status: dict | None = None, prev_soc: int | None = None) -> None:
+    ar = repo.active_request(db, v.id)
+    _charge_session(db, v, st, prev, prev_soc, ar, msg_status)
     if st.state == VehicleState.PARKED:
         # '주차 완료'는 충전 요청이 주차구역에 도착했을 때만: 주차 이동(4단계)까지 왔거나 같은 메시지에 COMPLETED가 옴.
         # 요청 없이 서 있는 것(출차 뒤·취소 뒤·관제 재시작·신호 흔들림)은 알리지 않는다
@@ -475,20 +504,21 @@ def apply_central_status(db: Session, msg: CentralStatusMsg, runtime, outbox: li
         if not v:
             continue  # 배정되지 않은 ROS 차량은 무시
         st = db.get(m.VehicleStateRow, v.id) or m.VehicleStateRow(vehicle_id=v.id)
-        prev = st.state if st.state is not None else None
+        prev, prev_soc = (st.state if st.state is not None else None), st.soc
         tid = _uuid(it.current_task_id)
         state = _no_backward(db, v, it.state, msg_status)
         st.state, st.soc = state, round(it.soc)
         st.zone_id = it.zone_id if it.zone_id in zones else None
         st.pose_x, st.pose_y, st.pose_yaw = (it.pose.x, it.pose.y, it.pose.yaw) if it.pose else (None, None, None)
         st.progress, st.estimated_completion = it.progress, it.estimated_completion
-        st.charger_id = it.charger_id if it.charger_id in chargers else None
+        # 충전기 정보가 없으면 차량 위치로(관제는 충전 중 충전기 vehicle_id를 비워 보내기도 한다: AVM 점유만 앎)
+        st.charger_id = it.charger_id if it.charger_id in chargers else (it.zone_id if it.zone_id in chargers else None)
         st.current_task_id = tid if tid and db.get(m.VehicleTask, tid) else None
         st.last_seen_at, st.updated_at = it.last_seen_at or now(), now()
         db.merge(st)
         changed.add(v.id)
         if prev != state:
-            _on_transition(db, v, st, prev, outbox, msg_status)
+            _on_transition(db, v, st, prev, outbox, msg_status, prev_soc)
         ex = repo.active_exit(db, v.id) if state in _EXIT_STATES else None
         if ex:  # 관제가 출차 목록(exits)을 안 보내도 차량 상태로 진행을 맞춘다
             set_exit_status(db, ex, ExitStatus.COMPLETED if state == VehicleState.EXITED else ExitStatus.IN_PROGRESS, outbox)
