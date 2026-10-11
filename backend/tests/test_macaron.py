@@ -313,5 +313,6 @@ def test_request_rejected_because_vehicle_exited(gw):
         s.send_text(json.dumps({"type": "request_result", "request_id": rid, "payload": {
             "accepted": False, "http_status": 409, "request_id": rid, "vehicle_id": EV,
             "error": json.dumps({"detail": {"error_code": "REQUEST_CONFLICT", "message": "VEHICLE_EXITING_OR_EXITED_REQUIRES_ENTER"}})}}))
-        v = wait_home(lambda v: v["home_state"] == "REQUEST_FAILED")
-        assert v["home_state"] == "REQUEST_FAILED" and "다시 들어온 뒤" in v["last_request"]["failure_reason"]
+        # 차량 상태를 아직 못 받아 홈은 NO_DATA일 수 있다 → 마지막 요청 결과로 확인
+        v = wait_home(lambda v: (v["last_request"] or {}).get("status") == "FAILED")
+        assert v["active_request"] is None and "다시 들어온 뒤" in v["last_request"]["failure_reason"]
