@@ -53,7 +53,8 @@ create table vehicles (
     max_charge_kw numeric(8,2) not null check (max_charge_kw > 0),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
-    deleted_at timestamptz                     -- soft delete
+    deleted_at timestamptz,                    -- soft delete
+    result_dismissed_at timestamptz            -- 사용자가 결과 화면에서 '홈으로 돌아가기'를 누른 시각(그 전에 끝난 결과는 홈에 다시 안 띄움)
 );
 create unique index uq_active_vehicle_plate on vehicles (plate_no) where deleted_at is null;
 -- 삭제되지 않은 차량끼리만 ROS 차량 하나를 하나의 차량에 배정

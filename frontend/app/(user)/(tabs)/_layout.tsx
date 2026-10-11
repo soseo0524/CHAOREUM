@@ -21,8 +21,6 @@ export default function TabsLayout() {
         options={{ title: '충전 요청', tabBarIcon: ({ color }) => <Zap size={22} color={color} /> }}
       />
       <Tabs.Screen name="me" options={{ title: '내 정보', tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
-      <Tabs.Screen name="history" options={{ href: null }} />
-      <Tabs.Screen name="history-detail" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="result" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />

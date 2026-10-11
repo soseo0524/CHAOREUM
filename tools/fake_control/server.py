@@ -121,7 +121,9 @@ def active(vid):
 
 
 def charger_user(except_vid=None):
-    """충전기를 쓰는(가는 중·충전 중·아직 안 비운) 차량."""
+    """충전기를 쓰는(가는 중·충전 중·아직 안 비운) 차량. 충전기 칸을 막아 두면 외부 차량이 점유한 것으로 본다."""
+    if CHARGER in S.blocked:
+        return "외부 차량"
     for v in S.vehicles.values():
         if v["id"] == except_vid:
             continue
@@ -176,8 +178,9 @@ def raw_status() -> dict:
         vehicles.append(snap)
     user = charger_user()
     at = next((v["id"] for v in S.vehicles.values() if v["slot"] == CHARGER), None)
-    chargers = [dict(charger_id="CHARGER_01", state="OCCUPIED" if at else "RESERVED" if user else "AVAILABLE",
-                     vehicle_id=at or user, power_kw=7.0, ready_to_charge=not user, aligned=None, error_code=None)]
+    outside = CHARGER in S.blocked
+    chargers = [dict(charger_id="CHARGER_01", state="OCCUPIED" if at or outside else "RESERVED" if user else "AVAILABLE",
+                     vehicle_id=None if outside else at or user, power_kw=7.0, ready_to_charge=not user, aligned=None, error_code=None)]
     reqs = [{k: val for k, val in r.items() if not k.startswith("_")} for r in S.requests.values()]
     return dict(timestamp=time.time(), vehicles=vehicles, chargers=chargers, requests=reqs, access=[], events=[], errors=[])
 
@@ -458,7 +461,7 @@ async def get_state():
             pos=xy(v), drive=dict(**{"from": d["from"]}, to=CENTER[d["to"]], to_slot=d["to"], depart=d["depart"], arrive=d["arrive"], purpose=d["purpose"]) if d else None,
             gw_state=gw.get(v["id"], "OFFLINE"), exit=v["exit"], request=r, last_request=last and dict(status=last["status"], id=last["request_id"]),
             actions=actions(v)))
-    return dict(now=time.time(), connected=S.connected, backend=ARGS.backend, paused=S.paused, travel_s=S.travel_s,
+    return dict(now=time.time(), connected=S.connected, charger_slot=CHARGER, backend=ARGS.backend, paused=S.paused, travel_s=S.travel_s,
                 charge_rate=S.charge_rate, blocked=sorted(S.blocked), vehicles=vehicles, log=list(S.log)[:60])
 
 
@@ -476,7 +479,11 @@ async def post_action(body: dict = Body(...)):
 async def post_settings(body: dict = Body(...)):
     if "block" in body:
         n = int(body["block"])
+        if n == CHARGER and n not in S.blocked and charger_user():
+            return {"ok": False, "error": f"충전기를 {charger_user()}이(가) 쓰는 중이라 점유로 바꿀 수 없어요"}
         S.blocked.symmetric_difference_update({n})
+        if n == CHARGER:
+            S.note("act", "충전기 점유(외부 차량) " + ("시작" if n in S.blocked else "해제 → 충전기 비었음"))
     if "paused" in body:
         S.paused = bool(body["paused"])
         S.note("act", "관제 신호 " + ("중지" if S.paused else "재개"))

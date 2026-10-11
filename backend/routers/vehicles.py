@@ -12,7 +12,7 @@ from deps import CurrentUser, require_user
 from errors import ApiError
 from schemas.common import ErrorCode, OkResponse
 from ros_schemas.messages import ChargingCancelMsg, VehicleExitMsg
-from schemas.status import ExitInfo
+from schemas.status import ExitInfo, VehicleStatus
 from schemas.vehicles import VehicleCreate, VehicleOut, VehicleUpdate
 from state import ros
 
@@ -125,3 +125,15 @@ def request_exit(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db: S
     from services import exit_info
 
     return exit_info(ex)
+
+
+@router.post("/{vehicle_id}/dismiss-result", response_model=VehicleStatus)
+def dismiss_result(vehicle_id: UUID, u: CurrentUser = Depends(require_user), db: Session = Depends(get_db)):
+    """결과 화면(주차 완료·출차 완료·취소·실패)에서 '홈으로 돌아가기': 지금까지 끝난 결과는 홈에 다시 띄우지 않는다.
+    진행 중인 요청·출차는 그대로 보인다. 바뀐 홈 상태를 바로 돌려준다."""
+    from services import vehicle_status
+
+    v = _mine(db, vehicle_id, u)
+    v.result_dismissed_at = repo.now()
+    db.commit()
+    return vehicle_status(db, v)

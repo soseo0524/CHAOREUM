@@ -113,9 +113,10 @@
 
 - 충전 시작, 충전 완료, 주차 완료, 이상 발생, 희망 완료 시각 임박을 목록으로 보관하고 읽음 표시를 한다.
 
-**U-08 충전 이력**
+**U-08 충전 이력** (삭제)
 
-- 날짜순 목록: 시작·종료 시각, 시작 SOC→종료 SOC, 대기시간. 상세 화면은 이벤트 타임라인을 보여준다.
+- 이력 목록·상세 화면과 '이력 보기'·'이용 내역 보기' 버튼은 두지 않는다. 결과 화면(주차 완료 결과, 홈의 출차 완료)은 '홈으로 돌아가기' 하나로 끝낸다.
+- '홈으로 돌아가기' = `POST /vehicles/{id}/dismiss-result`: 그때까지 끝난 결과는 홈에 다시 띄우지 않는다. 주차 완료 뒤에는 '충전 요청이 없어요 + 출차하기 + 충전 요청하기', 출차 완료 뒤에는 '충전 요청이 없어요 + 재입차 안내'(차가 주차장 밖이라 관제가 재입차를 알릴 때까지 출차·충전 요청 불가)로 돌아간다.
 
 **U-09 내 정보·동의**
 
@@ -315,7 +316,8 @@
 | 사용자 | PATCH /charge-requests/{id} | 희망 완료 시각·목표 SOC 변경, 취소 | user |
 | 사용자 | GET /me/status | 내 차량 실시간 상태 | user |
 | 사용자 | GET /parking-zones/areas | 전체 지도: 구역(A·B·C)별 빈자리·가득 참 | user |
-| 사용자 | GET /me/sessions, /me/notifications | 충전 이력(충전 시작·종료 SOC, 충전량), 알림함 | user |
+| 사용자 | GET /me/sessions, /me/notifications | 충전 세션(주차 완료 결과 화면의 충전량·시간·금액), 알림함 | user |
+| 사용자 | POST /vehicles/{id}/dismiss-result | 결과 화면의 '홈으로 돌아가기'(끝난 결과를 홈에서 내림, 바뀐 차량 상태를 돌려줌) | user |
 | 사용자 | POST /me/notifications/{id}/read, /me/notifications/read-all | 알림 읽음 처리(하나 / 모두) | user |
 | 사용자 | GET/PATCH /me/notification-settings | 알림 4종(충전 완료·주차 완료·이상·대기 순번 변경) 켜기/끄기 | user |
 | 사용자 | POST/DELETE /me/push-tokens | Expo 푸시 토큰 등록·해제(로그아웃 시 해제) | user |
@@ -344,7 +346,7 @@
 - 충전이 끝나면(CHARGE_DONE) 스케줄러가 주차 구역 이동 작업(`/vehicle_task`, type=MOVE_TO_PARKING)을 만든다. 차량 상태는 MOVING_TO_CHARGER → ARRIVED_AT_CHARGER → CHARGING → CHARGE_DONE → MOVING_TO_PARKING → PARKED 순으로 바뀌며, 사용자 호출이나 인수 확인은 없다.
 - 연결 방식(`ROS_MODE`): `mock`(개발용), `gateway`(관제가 노트북 등 서버가 접속할 수 없는 곳에 있을 때: 관제 PC의 게이트웨이가 서버 `/ws/gateway`로 먼저 연결해 토픽을 양방향 전달, 끊긴 동안의 메시지는 최대 500개 보관 후 재전송, 비밀값 `GATEWAY_TOKEN`), `rclpy`(서버가 ROS 노드로 직접 연결, 미구현). 게이트웨이는 관제 담당 구현(`macaron8_AIOT-main/src/aiot_central_control/gateway/ros_gateway_client.py`, `Authorization: Bearer` 헤더)을 쓴다.
 - 알림 생성: 상태 전이로 서버가 만든다. 충전 완료·주차 완료·차량 이상(FAULT)·요청 실패·대기 순번 앞당김(내 앞 요청이 취소·시작되어 순번이 줄 때)이다. 알림함에는 항상 저장하고, 푸시와 WebSocket 방송은 알림 설정(5.1 `notification_prefs`)이 켜진 종류만 보낸다. 푸시 전송은 `PUSH_MODE=expo`일 때만 실제로 나간다(기본 `mock`).
-- 충전 이력: 차량이 CHARGING에 들어가면 충전 세션을 열고 벗어나면 닫는다. 충전량(kWh)은 SOC 증가분 × 배터리 용량으로 계산한다.
+- 충전 세션: 차량이 CHARGING에 들어가면 열고 벗어나면 닫는다(관제 반영이 밀려 CHARGING을 건너뛰어도 충전 단계에 들어갔으면 충전 전 SOC부터 세션을 만든다). 충전량(kWh)은 SOC 증가분 × 배터리 용량으로 계산한다.
 - 대기 순번: 접수 순서(REQUESTED·ACCEPTED·SCHEDULED)로 매기고, 예상 대기시간은 앞선 대수 × 평균 소요 시간(임시값 12분, 스케줄러 연동 시 교체)이다. `GET /me/status`의 `active_request.queue_position`, `estimated_wait_min`으로 내려준다. 차량 좌표는 `pose`(map frame)로 내려준다.
 - 현재 중앙관제는 `/vehicle_states`의 고정 시뮬레이터 값을 쓰므로, 실제 요청을 반영하는 수신 경로를 중앙관제에 추가해야 한다.
 

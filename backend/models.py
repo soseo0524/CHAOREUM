@@ -60,6 +60,7 @@ class Vehicle(Base):
     created_at: Mapped[datetime] = created()
     updated_at: Mapped[datetime] = created()
     deleted_at: Mapped[datetime | None] = ts()
+    result_dismissed_at: Mapped[datetime | None] = ts()  # 결과 화면에서 '홈으로 돌아가기'를 누른 시각
     __table_args__ = (
         Index("uq_active_vehicle_plate", "plate_no", unique=True, postgresql_where=text("deleted_at is null"), sqlite_where=text("deleted_at is null")),
         Index("uq_active_ros_vehicle_id", "ros_vehicle_id", unique=True, postgresql_where=text("ros_vehicle_id is not null and deleted_at is null"), sqlite_where=text("ros_vehicle_id is not null and deleted_at is null")),

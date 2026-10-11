@@ -61,6 +61,7 @@
   <span style="flex:1"></span>
   <label>이동 시간(초) <input id="travel" type="number" min="0.5" step="0.5" /></label>
   <label>충전 속도(%/초) <input id="rate" type="number" min="0.1" step="0.5" /></label>
+  <button id="charger" class="ghost">충전기 점유 (외부 차량)</button>
   <button id="pause" class="ghost">관제 신호 중지</button>
 </header>
 <main>
@@ -119,7 +120,7 @@ async function drawMap() {
     poly.addEventListener('click', () => api('/api/settings', { block: s.id }).then(refresh));
     const cx = s.corners.reduce((a, c) => a + c[0], 0) / 4, cy = s.corners.reduce((a, c) => a + c[1], 0) / 4;
     const [tx, ty] = P([cx, cy]);
-    const t = el('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, 'pointer-events': 'none', opacity: .8 }, g);
+    const t = el('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', fill: '#fff', 'font-size': 12, 'pointer-events': 'none', opacity: .8, id: 'slot-label-' + s.id }, g);
     t.textContent = s.charger ? '⚡' : s.id;
     s.depth = Math.atan2(-(s.corners[3][1] - s.corners[0][1]), s.corners[3][0] - s.corners[0][0]) * 180 / Math.PI;
   }
@@ -131,7 +132,8 @@ function paintSlots() {
   const targets = new Set(st.vehicles.filter(v => v.drive).map(v => v.drive.to_slot));
   for (const s of slots) {
     const p = document.getElementById('slot-' + s.id);
-    p.setAttribute('fill', blocked.has(s.id) ? '#444' : s.charger ? '#f2a516' : (AREA_COLOR[s.area] || '#3a4653'));
+    p.setAttribute('fill', s.charger ? (blocked.has(s.id) ? '#e5484d' : '#f2a516') : blocked.has(s.id) ? '#444' : (AREA_COLOR[s.area] || '#3a4653'));
+    if (s.charger) document.getElementById('slot-label-' + s.id).textContent = blocked.has(s.id) ? '점유' : '⚡';
     p.setAttribute('fill-opacity', blocked.has(s.id) ? 1 : .45);
     p.setAttribute('stroke', targets.has(s.id) ? '#fff' : '#0b1015');
     p.setAttribute('stroke-width', targets.has(s.id) ? 3 : 1);
@@ -235,6 +237,7 @@ for (const id of ['travel', 'rate']) {
   i.addEventListener('change', () => { editing = false; api('/api/settings', id === 'travel' ? { travel_s: i.value } : { charge_rate: i.value }); });
 }
 document.getElementById('pause').onclick = () => api('/api/settings', { paused: !st.paused }).then(refresh);
+document.getElementById('charger').onclick = () => api('/api/settings', { block: st.charger_slot }).then(r => { if (!r.ok) alert(r.error); refresh(); });
 
 async function refresh() {
   st = await api('/api/state');
@@ -245,6 +248,8 @@ async function refresh() {
   document.getElementById('backend').textContent = st.backend;
   const p = document.getElementById('pause'); p.textContent = st.paused ? '관제 신호 재개' : '관제 신호 중지'; p.classList.toggle('on', st.paused);
   if (!editing) { document.getElementById('travel').value = st.travel_s; document.getElementById('rate').value = st.charge_rate; }
+  const busy = st.blocked.includes(st.charger_slot), cb = document.getElementById('charger');
+  cb.textContent = busy ? '충전기 점유 해제 (비우기)' : '충전기 점유 (외부 차량)'; cb.classList.toggle('on', busy);
   paintSlots(); paintCars(); renderVehicles(); renderLog();
 }
 

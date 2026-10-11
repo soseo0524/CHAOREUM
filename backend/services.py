@@ -138,6 +138,13 @@ def last_request(db: Session, v: m.Vehicle) -> m.ChargeRequest | None:
     return r
 
 
+def _dismissed(v: m.Vehicle, ended_at: datetime | None, default: bool = False) -> bool:
+    """그 결과(끝난 시각)를 사용자가 이미 확인하고 '홈으로 돌아가기'를 눌렀는지."""
+    if v.result_dismissed_at is None:
+        return False
+    return default if ended_at is None else ended_at <= v.result_dismissed_at
+
+
 def last_exit(db: Session, v: m.Vehicle) -> m.ExitRequest | None:
     """24시간 안에 끝난(COMPLETED) 가장 최근 출차. 그 뒤에 새 충전 요청을 했으면 None(출차 완료 화면을 끝낸다)."""
     ex = db.scalars(select(m.ExitRequest).where(m.ExitRequest.vehicle_id == v.id).order_by(m.ExitRequest.created_at.desc())).first()
@@ -170,8 +177,8 @@ def home_state(v: m.Vehicle, st: m.VehicleStateRow | None, ar: m.ChargeRequest |
         return HomeState.MOVING_TO_EXIT if ex.status == ExitStatus.IN_PROGRESS or st.state == VehicleState.MOVING_TO_EXIT else HomeState.EXIT_REQUESTED
     if st.state == VehicleState.MOVING_TO_EXIT:
         return HomeState.MOVING_TO_EXIT
-    if st.state == VehicleState.EXITED and ar is None:
-        return HomeState.EXITED
+    if st.state == VehicleState.EXITED and ar is None and not _dismissed(v, le.completed_at if le else None, default=le is None):
+        return HomeState.EXITED  # 출차 완료 화면에서 홈으로 돌아가면 NO_REQUEST(앱이 재입차 안내를 보여 준다)
     if ar:
         if st.state in _MOVING_1:
             return HomeState.MOVING_TO_CHARGER
@@ -286,6 +293,10 @@ def vehicle_status(db: Session, v: m.Vehicle) -> VehicleStatus:
     ex = repo.active_exit(db, v.id)
     le = None if ar or ex else last_exit(db, v)
     lr = None if ar else last_request(db, v)
+    if le and _dismissed(v, le.completed_at or le.updated_at):  # 사용자가 결과를 확인하고 홈으로 돌아감
+        le = None
+    if lr and _dismissed(v, lr.updated_at):
+        lr = None
     hs = home_state(v, st, ar, lr, ex, le)
     return VehicleStatus(
         wait=wait_info(ar) if hs == HomeState.QUEUED else None, can_exit=can_exit(hs, st),

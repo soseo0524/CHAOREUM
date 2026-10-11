@@ -1,8 +1,8 @@
 // 홈: GET /me/status 의 home_state 하나로 화면(01.04~06.06)을 고른다
 import { router } from 'expo-router';
-import { CarFront, ChevronRight } from 'lucide-react-native';
+import { CarFront } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 
 import {
   Banner,
@@ -179,6 +179,17 @@ export default function Home() {
   );
 
   const goRequest = () => router.navigate('/request');
+  async function goHome() {
+    setBusy(true);
+    try {
+      await api.dismissResult(v.vehicle_id);
+      await refresh();
+    } catch (e: any) {
+      Alert.alert('잠시 후 다시 시도해 주세요', e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   const banner = !connected ? (
     <Banner
       title="연결이 끊겼어요"
@@ -236,20 +247,23 @@ export default function Home() {
       body = ls ? (
         <View style={{ gap: 10, paddingTop: 14 }}>
           <T style={{ color: C.sub, fontSize: 12, letterSpacing: 1 }}>최근 충전</T>
-          <Pressable onPress={() => router.navigate('/me')} style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <T style={{ fontSize: 14 }}>
-                {monthDay(ls.ended_at)}
-                {ls.end_soc != null ? ` · ${ls.end_soc}%까지` : ''}
-              </T>
-              <T style={{ color: C.sub, fontSize: 12 }}>
-                {ls.energy_kwh.toFixed(1)} kWh · {won(ls.cost_won)}원
-              </T>
-            </View>
-            <ChevronRight size={18} color={C.muted} />
-          </Pressable>
+          <View style={{ gap: 2 }}>
+            <T style={{ fontSize: 14 }}>
+              {monthDay(ls.ended_at)}
+              {ls.end_soc != null ? ` · ${ls.end_soc}%까지` : ''}
+            </T>
+            <T style={{ color: C.sub, fontSize: 12 }}>
+              {ls.energy_kwh.toFixed(1)} kWh · {won(ls.cost_won)}원
+            </T>
+          </View>
         </View>
       ) : null;
+      if (v.state === VehicleState.EXITED) {
+        // 출차 완료 화면에서 홈으로 돌아옴: 차가 주차장 밖이라 재입차(관제 ENTER) 전에는 출차·충전 요청을 받지 않는다
+        body = <Notice eyebrow="출차 완료" body="주차장에 다시 들어오면 충전을 요청할 수 있어요." sub="" />;
+        footer = null;
+        break;
+      }
       // 요청 없이 주차장에 서 있는 차도 나갈 수 있다
       footer = v.can_exit ? (
         <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -335,7 +349,7 @@ export default function Home() {
       footer = done ? (
         <View style={{ gap: 6 }}>
           <T style={{ color: C.sub, fontSize: 13, textAlign: 'center' }}>이용해 주셔서 감사합니다.</T>
-          <Button label="이용 내역 보기" onPress={() => router.push('/history')} />
+          <Button label="홈으로 돌아가기" onPress={goHome} loading={busy} />
         </View>
       ) : (
         <Button kind="outline" label="관제에 문의하기" onPress={contactCenter} />

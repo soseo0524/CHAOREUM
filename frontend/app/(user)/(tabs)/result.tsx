@@ -2,7 +2,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Car, Check, ChevronRight } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { BackBar, Button, Screen, T } from '@/components/ui';
 import { clockText, minutesBetween, won, zoneLabel } from '@/constants/format';
@@ -12,9 +12,24 @@ import { useStatus } from '@/hooks/useStatus';
 import { api } from '@/services/api';
 
 export default function Result() {
-  const { status } = useStatus();
+  const { status, refresh } = useStatus();
   const v = status?.vehicles[0];
   const [session, setSession] = useState<ChargeSession | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // 결과를 확인했으니 홈은 '충전 요청이 없어요'(출차하기·충전 요청하기)로 돌아간다
+  async function goHome() {
+    setBusy(true);
+    try {
+      if (v) await api.dismissResult(v.vehicle_id);
+      await refresh();
+      router.navigate('/');
+    } catch (e: any) {
+      Alert.alert('잠시 후 다시 시도해 주세요', e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -34,7 +49,7 @@ export default function Result() {
   const cost = session?.cost_won ?? v?.charge?.cost_won ?? null;
 
   return (
-    <Screen tabs scroll footer={<Button label="이력 보기" onPress={() => router.push('/history')} />}>
+    <Screen tabs scroll footer={<Button label="홈으로 돌아가기" onPress={goHome} loading={busy} />}>
       <BackBar onPress={() => router.back()} />
       <View style={{ gap: 10, paddingTop: 8 }}>
         <View

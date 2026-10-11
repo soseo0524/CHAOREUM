@@ -75,7 +75,6 @@ export default function Me() {
       </Pressable>
       <View>
         <MenuRow label="내 차량" value={plates} onPress={() => router.push('/vehicles')} />
-        <MenuRow label="충전 이력" onPress={() => router.push('/history')} />
         <MenuRow label="알림 설정" onPress={() => router.push('/notification-settings')} />
         <MenuRow label="위치·차량 위임 동의" onPress={() => router.push('/consent')} />
         <MenuRow label="이용약관 · 개인정보 처리방침" onPress={() => router.push('/terms')} />

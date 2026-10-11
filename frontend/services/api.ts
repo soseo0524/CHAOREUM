@@ -11,6 +11,7 @@ import type {
   ParkingArea,
   Profile,
   Vehicle,
+  VehicleStatus,
   WsMessage,
 } from '@/constants/types';
 import { supabase } from './supabase';
@@ -72,6 +73,8 @@ export const api = {
     request<Vehicle>('PATCH', `/vehicles/${id}`, b),
   deleteVehicle: (id: string) => request('DELETE', `/vehicles/${id}`),
   requestExit: (vehicleId: string) => request<ExitInfo>('POST', `/vehicles/${vehicleId}/exit`),
+  // 결과 화면에서 '홈으로 돌아가기': 끝난 결과(주차·출차 완료 등)를 홈에 다시 띄우지 않는다
+  dismissResult: (vehicleId: string) => request<VehicleStatus>('POST', `/vehicles/${vehicleId}/dismiss-result`),
   createVehicle: (b: { plate_no: string; model?: string | null; battery_kwh: number; max_charge_kw: number }) =>
     request<Vehicle>('POST', '/vehicles', b),
   parkingAreas: () => request<AreasOut>('GET', '/parking-zones/areas'),

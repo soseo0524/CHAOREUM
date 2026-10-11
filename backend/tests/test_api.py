@@ -797,3 +797,25 @@ def test_charge_session_even_if_charging_state_skipped_and_target_after_exit():
     assert v["home_state"] == "EXITED" and v["active_request"] is None
     assert v["last_request"]["target_soc"] == 80 and v["charge"]["energy_kwh"] == 30.0
     assert len(client.get("/me/sessions", headers=UH).json()) == 1  # 세션은 하나만
+
+
+def test_dismiss_result_returns_home_to_no_request():
+    """결과 화면에서 '홈으로 돌아가기': 주차 완료 뒤엔 요청 없음+출차 가능, 출차 완료 뒤엔 요청 없음(재입차 전이라 출차·요청 불가)."""
+    vid = vehicle(); assign(vid)
+    rid = _start(vid)
+    for state in ("MOVING_TO_CHARGER", "CHARGING", "CHARGE_DONE", "MOVING_TO_PARKING"):
+        _send(rid, state)
+    v = _send(rid, "PARKED", "COMPLETED", zone_id="PARKING_05")
+    assert v["home_state"] == "PARKED"
+    d = client.post(f"/vehicles/{vid}/dismiss-result", headers=UH)
+    assert d.status_code == 200 and d.json()["home_state"] == "NO_REQUEST" and d.json()["can_exit"] is True
+    assert _send(None, "PARKED")["home_state"] == "NO_REQUEST"  # 관제가 같은 상태를 계속 보내도 결과로 안 돌아감
+
+    assert client.post(f"/vehicles/{vid}/exit", headers=UH).status_code == 201
+    ex = ros.last("/vehicle/exit")["exit_id"]
+    v = _send(None, "EXITED", exits=[dict(exit_id=ex, vehicle_id="CAR_01", status="COMPLETED")])
+    assert v["home_state"] == "EXITED"  # 확인한 뒤에 새로 끝난 결과는 다시 보인다
+    d = client.post(f"/vehicles/{vid}/dismiss-result", headers=UH).json()
+    assert d["home_state"] == "NO_REQUEST" and d["state"] == "EXITED" and d["can_exit"] is False
+    assert _send(None, "EXITED")["home_state"] == "NO_REQUEST"
+    assert client.post(f"/vehicles/{vid}/dismiss-result", headers=H(uuid.uuid4(), "user")).status_code == 404  # 남의 차
