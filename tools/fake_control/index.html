@@ -61,6 +61,9 @@
   <span style="flex:1"></span>
   <label>이동 시간(초) <input id="travel" type="number" min="0.5" step="0.5" /></label>
   <label>충전 속도(%/초) <input id="rate" type="number" min="0.1" step="0.5" /></label>
+  <label>다른 차량 충전(분) <input id="gmin" type="number" min="1" step="5" /></label>
+  <button id="guestIn">다른 차량 충전소에 넣기</button>
+  <button id="guestOut" class="danger">다른 차량 빼기</button>
   <button id="charger" class="ghost">충전기 점유 (외부 차량)</button>
   <button id="pause" class="ghost">관제 신호 중지</button>
 </header>
@@ -194,7 +197,7 @@ function renderVehicles() {
     const where = v.drive ? `이동 중 → ${v.drive.to_slot === undefined ? '' : (slots.find(s => s.id === v.drive.to_slot)?.charger ? '충전기' : 'PARKING_' + v.drive.to_slot)}`
       : (v.location || '-');
     card.innerHTML = `
-      <div class="v-head"><b>${v.id}</b><span class="state ${v.gw_state}">${STATE_KO[v.gw_state] || v.gw_state}</span>
+      <div class="v-head"><b>${v.id}</b>${v.guest ? '<span class="sub">(시연용 다른 차량)</span>' : ''}<span class="state ${v.gw_state}">${STATE_KO[v.gw_state] || v.gw_state}</span>
         <span class="sub">${where}</span></div>
       <div class="row"><span class="sub">SOC ${v.soc.toFixed(0)}%</span><div class="socbar"><div style="width:${v.soc}%"></div></div></div>`;
     const r = v.request;
@@ -231,11 +234,13 @@ function renderLog() {
 }
 
 let editing = false;
-for (const id of ['travel', 'rate']) {
+for (const id of ['travel', 'rate', 'gmin']) {
   const i = document.getElementById(id);
   i.addEventListener('focus', () => editing = true);
-  i.addEventListener('change', () => { editing = false; api('/api/settings', id === 'travel' ? { travel_s: i.value } : { charge_rate: i.value }); });
+  i.addEventListener('change', () => { editing = false; if (id !== 'gmin') api('/api/settings', id === 'travel' ? { travel_s: i.value } : { charge_rate: i.value }); });
 }
+document.getElementById('guestIn').onclick = () => api('/api/settings', { guest: 'start', minutes: document.getElementById('gmin').value }).then(r => { if (!r.ok) alert(r.error); refresh(); });
+document.getElementById('guestOut').onclick = () => api('/api/settings', { guest: 'out' }).then(r => { if (!r.ok) alert(r.error); refresh(); });
 document.getElementById('pause').onclick = () => api('/api/settings', { paused: !st.paused }).then(refresh);
 document.getElementById('charger').onclick = () => api('/api/settings', { block: st.charger_slot }).then(r => { if (!r.ok) alert(r.error); refresh(); });
 
@@ -247,7 +252,7 @@ async function refresh() {
   c.className = 'pill ' + (st.connected && !st.paused ? 'on' : 'off');
   document.getElementById('backend').textContent = st.backend;
   const p = document.getElementById('pause'); p.textContent = st.paused ? '관제 신호 재개' : '관제 신호 중지'; p.classList.toggle('on', st.paused);
-  if (!editing) { document.getElementById('travel').value = st.travel_s; document.getElementById('rate').value = st.charge_rate; }
+  if (!editing) { document.getElementById('travel').value = st.travel_s; document.getElementById('rate').value = st.charge_rate; document.getElementById('gmin').value = st.guest_minutes; }
   const busy = st.blocked.includes(st.charger_slot), cb = document.getElementById('charger');
   cb.textContent = busy ? '충전기 점유 해제 (비우기)' : '충전기 점유 (외부 차량)'; cb.classList.toggle('on', busy);
   paintSlots(); paintCars(); renderVehicles(); renderLog();

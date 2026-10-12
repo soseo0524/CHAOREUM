@@ -335,3 +335,38 @@ def test_older_status_is_ignored_and_new_gateway_replaces_old(gw):
             with pytest.raises(WebSocketDisconnect) as e:  # 새 게이트웨이가 붙으면 이전 선은 끊긴다
                 s.receive_text()
             assert e.value.code == 4409
+
+
+def test_demo_guest_vehicle_occupies_charger_and_counts_in_queue(gw, monkeypatch):
+    """시연용 다른 차량: 게이트웨이가 요청을 만들게 하고, 그 차가 충전하는 동안 내 대기 화면에 '앞에 1대 · 약 60분'."""
+    import main as main_mod
+    from config import settings as cfg
+
+    monkeypatch.setattr("demo.settings", replace(cfg, auto_assign_ros_ids=("EV-01", "EV-02", "EV-03")))
+    gw.on_demo_guest(main_mod._on_demo_guest)
+    import state
+    monkeypatch.setattr(state, "ros", gw)
+    monkeypatch.setattr(main_mod, "ros", gw)
+    rid = start()  # 내 차(EV-01) 요청
+    with client.websocket_connect("/ws/gateway", headers={"Authorization": f"Bearer {TOKEN}"}) as s:
+        s.receive_text()  # 내 요청
+        s.send_text(json.dumps({"type": "demo_guest", "payload": {"minutes": 60, "soc": 20, "target_soc": 100}}))
+        msgs = [json.loads(s.receive_text()) for _ in range(2)]
+        req = next(x for x in msgs if x["type"] == "charging_request")
+        res = next(x for x in msgs if x["type"] == "demo_guest_result")["payload"]
+        assert res["ok"] and res["vehicle_id"] == "EV-03" and req["payload"]["vehicle_id"] == "EV-03" and req["payload"]["request_id"] == res["request_id"]
+        guest = dict(raw_status(res["request_id"], "CHARGING", vehicle_state="PARKED", location="CHARGER_01", soc=20.0, charger_state="OCCUPIED"))
+        guest["vehicles"][0]["vehicle_id"] = guest["requests"][0]["vehicle_id"] = "EV-03"
+        guest["requests"][0]["target_soc"] = 100.0
+        mine = raw_status(rid, "ACTIVE")
+        guest["vehicles"] += mine["vehicles"]
+        guest["requests"] = guest["requests"][:1] + mine["requests"][:1]
+        s.send_text(json.dumps({"type": "central_status", "payload": payload(guest)}))
+        v = wait_home(lambda v: v["home_state"] == "QUEUED" and (v["active_request"] or {}).get("queue_position") == 2)
+        assert v["active_request"]["queue_position"] == 2 and v["active_request"]["estimated_wait_min"] == 60
+        # 두 번 누르면 진행 중이라 거절
+        s.send_text(json.dumps({"type": "demo_guest", "payload": {}}))
+        again = json.loads(s.receive_text())
+        assert again["type"] == "demo_guest_result" and again["payload"]["ok"] is False
+    admin = {x["ros_vehicle_id"]: x for x in client.get("/admin/vehicles", headers=AH).json()}
+    assert admin["EV-03"]["owner"] is None and admin["EV-03"]["plate_no"] == "시연 차량 EV-03"

@@ -76,12 +76,30 @@ def notify_queue_changes(db: Session, before: list[UUID], outbox: list | None) -
                    {"request_id": str(rid), "queue_position": idx + 1}, outbox)
 
 
+def _charging_ahead(db: Session, exclude_vehicle: UUID) -> list[int]:
+    """지금 충전기를 쓰는(충전소로 가는 중·충전 중·충전 완료 뒤 아직 충전기에 있는) 다른 차들의 남은 시간(분).
+    대기 중인 차는 이 차들이 충전기를 비워야 들어가므로 '앞에 있는 차'로 센다."""
+    rows = db.scalars(select(m.ChargeRequest).where(m.ChargeRequest.status == ChargeRequestStatus.IN_PROGRESS,
+                                                    m.ChargeRequest.progress_step.between(1, 3),
+                                                    m.ChargeRequest.vehicle_id != exclude_vehicle)).all()
+    out = []
+    for r in rows:
+        v, st = db.get(m.Vehicle, r.vehicle_id), db.get(m.VehicleStateRow, r.vehicle_id)
+        soc = float(st.soc) if st and st.soc is not None else 0.0
+        charge_s = max(r.target_soc - soc, 0) / 100 * float(v.battery_kwh) / float(v.max_charge_kw) * 3600 if v and v.max_charge_kw else 0
+        move_s = settings.move_to_charger_s if r.progress_step < 2 else 0
+        out.append(round((charge_s + move_s) / 60))
+    return out
+
+
 def _with_queue(db: Session, r: m.ChargeRequest) -> ChargeRequestOut:
     out = request_out(r)
     if r.status in (ChargeRequestStatus.REQUESTED, ChargeRequestStatus.ACCEPTED, ChargeRequestStatus.SCHEDULED):
         q = queue_order(db)  # 한 번만 읽는다: 두 번 읽는 사이 관제 상태 반영으로 대기열에서 빠지면 index()가 터진다
         ahead = q.index(r.id) if r.id in q else 0
-        out.queue_position, out.estimated_wait_min = ahead + 1, ahead * settings.avg_service_min
+        using = _charging_ahead(db, r.vehicle_id)  # 충전기를 쓰는 차도 내 앞에 있다(남은 충전 시간만큼 기다림)
+        out.queue_position = ahead + len(using) + 1
+        out.estimated_wait_min = sum(using) + ahead * settings.avg_service_min
     return out
 
 

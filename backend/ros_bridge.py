@@ -55,6 +55,7 @@ class GatewayRosBridge:
         self._ws = None
         self._loop = None
         self._cb: Callable | None = None
+        self._demo_cb: Callable | None = None
         import threading
 
         self.heard: dict[str, float] = {}  # ros vehicle_id → 관제 상태를 받은 시각(monotonic). 반영(DB)이 늦어도 신호는 살아 있다고 본다
@@ -77,6 +78,18 @@ class GatewayRosBridge:
 
     def on_central_status(self, cb: Callable) -> None:
         self._cb = cb
+
+    def on_demo_guest(self, cb: Callable) -> None:
+        """시연용 다른 차량 요청(demo.py). cb(payload) → 관제에 돌려줄 응답 dict."""
+        self._demo_cb = cb
+
+    def send_raw(self, env: dict) -> None:
+        """토픽이 아닌 응답을 게이트웨이로 바로 보낸다(연결 안 돼 있으면 버린다)."""
+        import asyncio
+        import json
+
+        if self.connected and self._ws and self._loop and not self._loop.is_closed():
+            asyncio.run_coroutine_threadsafe(self._ws.send_text(json.dumps(env, ensure_ascii=False)), self._loop)
 
     # --- /ws/gateway 라우트가 쓰는 부분 ---
     def _wire(self, topic: str, data: str) -> str | None:
@@ -170,6 +183,9 @@ class GatewayRosBridge:
             msg = status_from_controller(payload, self.exit_of)
             self._finish_unknown_cancels(payload, msg)
             self._cb(parse_topic("/central_status", json.dumps(msg)))
+        elif d.get("type") == "demo_guest":
+            if self._demo_cb:
+                self.send_raw({"type": "demo_guest_result", "payload": self._demo_cb(d.get("payload") or {})})
         elif d.get("type") == "request_result":
             is_exit = (d.get("payload") or {}).get("operation") == "EXIT" or (not d.get("request_id") and d.get("vehicle_id"))
             msg = exit_result(d, self.exit_of) if is_exit else failure_from_result(d, self.vehicle_of)

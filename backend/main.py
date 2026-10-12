@@ -65,6 +65,23 @@ def _on_central(msg):
 ros.on_central_status(_on_central)
 
 
+def _on_demo_guest(payload: dict) -> dict:
+    """시연용 다른 차량의 충전 요청을 만들고 관제로 보낸다(demo.py)."""
+    from demo import start_guest
+    from routers.charge_requests import _ros_request
+
+    with SessionLocal() as db:
+        reply, r, v = start_guest(db, payload)
+        db.commit()
+        if r is not None:
+            ros.publish("/charging/request", _ros_request(r, v))
+    return reply
+
+
+if hasattr(ros, "on_demo_guest"):
+    ros.on_demo_guest(_on_demo_guest)
+
+
 @app.get("/health")
 def health():
     return {"ok": True}

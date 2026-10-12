@@ -59,6 +59,8 @@ class State:
         self.paused = False  # 관제 전체 신호 끊기
         self.travel_s = 4.0
         self.charge_rate = 2.0  # %/초
+        self.guest: str | None = None  # 시연용 다른 차량(서버가 만든 주인 없는 차량)의 관제 ID
+        self.guest_minutes = 60
         for i, key in enumerate(("ev01", "ev02", "ev03"), 1):
             self.add_vehicle(f"EV-0{i}", int(_FLEET[f"{key}_parking_slot_id"]), (35.0, 50.0, 20.0)[i - 1])
 
@@ -252,6 +254,16 @@ async def on_message(item: dict):
             await exit_ok(v)
         else:
             v["exit"] = dict(pending=True)
+    elif kind == "demo_guest_result":
+        if p.get("ok"):
+            vid = p["vehicle_id"]
+            if vid not in S.vehicles:
+                S.add_vehicle(vid, pick(["B"], vid) or 0)
+            S.guest = vid
+            S.vehicles[vid]["soc"] = float(p.get("soc", 20))
+            S.note("info", f"다른 차량 {vid}: 서버가 충전 요청을 만들었어요(충전 {p.get('minutes')}분) → 충전소로 보냅니다")
+        else:
+            S.note("warn", f"다른 차량 요청 실패: {p.get('message')}")
     else:
         S.note("warn", f"모르는 메시지: {kind}")
 
@@ -386,9 +398,14 @@ async def tick_loop():
             if v["drive"] and now >= v["drive"]["arrive"]:
                 arrive(v)
             r = active(v["id"])
-            if r and r["status"] == "CHARGING" and v["slot"] == CHARGER and not r["cancel_requested"] and v["soc"] < r["target_soc"]:
+            guest = v["id"] == S.guest  # 시연용 다른 차량: 충전소까지 알아서 가서 충전을 붙잡고 있다(배터리 안 오름 → 대기 시간 유지)
+            if r and r["status"] == "CHARGING" and v["slot"] == CHARGER and not r["cancel_requested"] and v["soc"] < r["target_soc"] and not guest:
                 v["soc"] = min(r["target_soc"], v["soc"] + S.charge_rate * dt)
-            if v["auto"] and not v["drive"] and now >= v["auto_at"]:
+            if guest and r and not v["drive"] and r["status"] in ("ACTIVE", "DISPATCHED") and not r["cancel_requested"]:
+                step = next((x["action"] for x in actions(v) if x["enabled"] and x["action"] in ("to_charger", "start_charging")), None)
+                if step:
+                    await do(v["id"], step)
+            elif v["auto"] and not v["drive"] and now >= v["auto_at"]:
                 step = next((x for x in actions(v) if x["enabled"] and x["kind"] == "step"), None)
                 if step and step["action"] not in ("finish_charging", "enter"):
                     await do(v["id"], step["action"])
@@ -466,11 +483,11 @@ async def get_state():
         r = active(v["id"])
         last = None if r else next((x for x in reversed(list(S.requests.values())) if x["vehicle_id"] == v["id"]), None)
         vehicles.append(dict(
-            id=v["id"], slot=v["slot"], location=loc(v["slot"]), soc=round(v["soc"], 1), estop=v["estop"], online=v["online"], auto=v["auto"],
+            id=v["id"], guest=v["id"] == S.guest, slot=v["slot"], location=loc(v["slot"]), soc=round(v["soc"], 1), estop=v["estop"], online=v["online"], auto=v["auto"],
             pos=xy(v), drive=dict(**{"from": d["from"]}, to=CENTER[d["to"]], to_slot=d["to"], depart=d["depart"], arrive=d["arrive"], purpose=d["purpose"]) if d else None,
             gw_state=gw.get(v["id"], "OFFLINE"), exit=v["exit"], request=r, last_request=last and dict(status=last["status"], id=last["request_id"]),
             actions=actions(v)))
-    return dict(now=time.time(), connected=S.connected, charger_slot=CHARGER, backend=ARGS.backend, paused=S.paused, travel_s=S.travel_s,
+    return dict(now=time.time(), connected=S.connected, charger_slot=CHARGER, guest=S.guest, guest_minutes=S.guest_minutes, backend=ARGS.backend, paused=S.paused, travel_s=S.travel_s,
                 charge_rate=S.charge_rate, blocked=sorted(S.blocked), vehicles=vehicles, log=list(S.log)[:60])
 
 
@@ -500,6 +517,23 @@ async def post_settings(body: dict = Body(...)):
         S.travel_s = max(0.5, float(body["travel_s"]))
     if "charge_rate" in body:
         S.charge_rate = max(0.1, float(body["charge_rate"]))
+    if body.get("guest") == "start":  # 다른 차량을 충전소에 넣기: 서버에 시연 차량 요청을 만들어 달라고 한다
+        if S.ws is None:
+            return {"ok": False, "error": "서버에 연결돼 있지 않아요"}
+        S.guest_minutes = int(body.get("minutes") or S.guest_minutes)
+        await send(dict(type="demo_guest", payload=dict(minutes=S.guest_minutes, soc=20, target_soc=100)), f"다른 차량 충전 요청 ({S.guest_minutes}분)")
+    if body.get("guest") == "out":  # 다른 차량 빼기: 충전을 끝내고 주차 칸으로(충전기 비움)
+        g = S.vehicles.get(S.guest or "")
+        r = active(S.guest) if g else None
+        if r is None:
+            return {"ok": False, "error": "충전 중인 다른 차량이 없어요"}
+        if g["slot"] == CHARGER and not g["drive"]:
+            r["status"], g["soc"] = "CHARGING", max(g["soc"], r["target_soc"])
+            await do(g["id"], "to_parking")
+        else:  # 충전소에 도착하기 전이면 그냥 끝낸다
+            g["drive"], g["slot"] = None, g["slot"] if g["slot"] is not None else pick(["B"], g["id"])
+            r["status"] = "CANCELED"
+        S.note("act", f"다른 차량 {g['id']} 빼기 → 충전기 비움")
     return {"ok": True}
 
 
