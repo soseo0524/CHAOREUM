@@ -7,6 +7,7 @@ ROS(차량 주행·AVM·인식)는 생략하고 관제 상태를 직접 만든�
 실행: backend/.venv/bin/python tools/fake_control/server.py [--backend WS_URL] [--token TOKEN] [--port 8090]
   기본 서버: ws://127.0.0.1:8000/ws/gateway, 토큰: --token > AIOT_WS_TOKEN > backend/.env 의 GATEWAY_TOKEN
   화면: http://127.0.0.1:8090
+  --wait-slot 10: 충전기가 사용 중일 때 임시 대기 칸(시연용, 기본 10번. 막혀 있으면 B→A 첫 빈칸)
 """
 from __future__ import annotations
 
@@ -291,7 +292,8 @@ def actions(v) -> list[dict]:
     if st == "ACTIVE":
         add("to_charger", "충전소로 출발", user is None, f"충전기 사용 중({user})")
         if r["parking_purpose"] != "WAIT":
-            add("to_wait", "대기 칸으로 (충전기 사용 중)", pick(WAIT_PRI, vid) is not None, "빈칸 없음")
+            w = wait_slot(vid)
+            add("to_wait", f"대기 칸으로 (충전기 사용 중) → {w}번" if w is not None else "대기 칸으로 (충전기 사용 중)", w is not None, "빈칸 없음")
         add("reject", "요청 거절 (FAILED)", kind="danger")
     elif st == "DISPATCHED":
         add("start_charging", "충전 시작 (차량 인식·점유 확인)", v["slot"] == CHARGER)
@@ -303,6 +305,13 @@ def actions(v) -> list[dict]:
             add("to_parking", f"주차 칸으로 출발 ({r['preferred_parking_zone'] or '자동'}구역)", done and pick(_pref(r), vid) is not None,
                 "충전 중" if not done else "빈칸 없음")
     return out
+
+
+def wait_slot(vid) -> int | None:
+    """충전기가 사용 중일 때 임시 대기 칸. 시연용으로 정한 칸(--wait-slot, 기본 10번)이 비어 있으면 그 칸, 아니면 관제 규칙(B→A 첫 빈칸)."""
+    if ARGS.wait_slot in CENTER and ARGS.wait_slot not in taken(vid):
+        return ARGS.wait_slot
+    return pick(WAIT_PRI, vid)
 
 
 def _pref(r):
@@ -319,7 +328,7 @@ async def do(vid: str, a: str, value=None):
                  assigned_parking_zone=None, assigned_parking_slot=None)
         drive(v, CHARGER, "CHARGER", r["task_id"])
     elif a == "to_wait":
-        n = pick(WAIT_PRI, vid)
+        n = wait_slot(vid)
         r.update(parking_purpose="WAIT", assigned_parking_zone=AREA_OF.get(n), assigned_parking_slot=f"PARKING_{n}",
                  return_task_id=tid("WAIT"), parking_arrived=False)
         drive(v, n, "WAIT", r["return_task_id"])
@@ -499,6 +508,7 @@ def main():
     p.add_argument("--backend", default=os.getenv("AIOT_WS_URL", "ws://127.0.0.1:8000/ws/gateway"))
     p.add_argument("--token", default=os.getenv("AIOT_WS_TOKEN"))
     p.add_argument("--port", type=int, default=8090)
+    p.add_argument("--wait-slot", type=int, default=10, help="충전기 사용 중일 때 임시 대기 칸 번호(시연용, 기본 10). -1이면 관제 규칙대로")
     p.parse_args(namespace=ARGS)
     if not ARGS.token:
         try:
